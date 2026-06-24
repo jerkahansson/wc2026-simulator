@@ -135,9 +135,11 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
   // ===================== TUNABLE CONSTANTS =====================
   // Tree breadth is fixed by COUNT, not a probability threshold: the root fans
-  // out to LAYER_CAPS[0] opponents (2nd layer), and each of those to
-  // LAYER_CAPS[1] (3rd layer) → 3 then 3×3 = 9 nodes. Tune here.
-  const LAYER_CAPS = [3, 3]; // children per node, by depth → 3 in 2nd layer, 9 in 3rd
+  // out to LAYER_CAPS[0] opponents (2nd layer), each previewing LAYER_CAPS[1]
+  // (3rd layer). 6 then 2 → up to 12 nodes (fits 540px readably). Re-rooting any
+  // node re-shows its top-6. Tune here.
+  const LAYER_CAPS = [6, 2]; // children shown per node, by depth → 6 in 2nd layer, 2-deep preview
+                             // (re-rooting any node re-shows its top-6, matching the left list)
   const PRUNE_PIE = 0.012;   // pie explorer hides slices smaller than this
   const MAXD = 2;            // generations shown before clicking deeper
 

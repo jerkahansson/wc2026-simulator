@@ -385,10 +385,9 @@ def group_standings():
     return standings, remaining, stage
 
 
-TREE_REL_PRUNE = 0.05    # keep a child if it's >= 5% likely GIVEN you're at its parent
-TREE_MIN_N = 30          # ...and backed by at least this many sims (avoid noise)
-TREE_ROOT_MIN = 0.01     # keep an R32 opponent reached >= 1% of the time overall
-TREE_MAX_KIDS = 4        # cap children per node (UI shows top-3; depth matters, not breadth)
+TREE_MIN_N = 30          # only keep a child backed by at least this many sims (anti-noise)
+TREE_ROOT_MIN = 0.005    # keep an R32 opponent reached >= 0.5% of the time overall
+TREE_MAX_KIDS = 6        # keep the top-6 most-likely children per node (no prob threshold)
 
 
 def build_conditional_tree(root, remaining_opp, n_sims):
@@ -397,10 +396,10 @@ def build_conditional_tree(root, remaining_opp, n_sims):
     reachProb (absolute), beatProb (chance to win that match), and children =
     the conditional next-round opponents.
 
-    Pruning is RELATIVE to the parent (condProb >= TREE_REL_PRUNE), not absolute,
-    so a node always shows its meaningful continuations regardless of how unlikely
-    the path is overall — you can keep drilling toward the Final. A small sample
-    floor keeps noisy single-sim branches out."""
+    No probability threshold: each node simply keeps its TOP-N most-likely
+    next opponents (by sim count), bounded only by a small sample floor to drop
+    noise. Breadth is defined by the cap, not a probability gate — so a node
+    always shows its realistic continuations and you can drill toward the Final."""
     def emit(node, depth, opp, n_parent):
         n, w = node["n"], node["w"]
         out = {
@@ -414,8 +413,7 @@ def build_conditional_tree(root, remaining_opp, n_sims):
         }
         if depth < len(ROUND_SEQ) - 1 and n > 0:   # not the Final → may have kids
             ranked = sorted(node["kids"].items(), key=lambda kv: -kv[1]["n"])
-            kept = [(o2, sub) for o2, sub in ranked
-                    if sub["n"] / n >= TREE_REL_PRUNE and sub["n"] >= TREE_MIN_N]
+            kept = [(o2, sub) for o2, sub in ranked if sub["n"] >= TREE_MIN_N]
             for o2, sub in kept[:TREE_MAX_KIDS]:
                 out["children"].append(emit(sub, depth + 1, o2, n))
         return out
