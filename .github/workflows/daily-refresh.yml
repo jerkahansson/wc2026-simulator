@@ -35,12 +35,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Each step that fails aborts the job BEFORE the commit step, so a bad
-      # fetch or a failed verify leaves the live site untouched (fail-safe).
-      - name: Fetch current Elo ratings
+      # The two fetches are best-effort: if a source is briefly unreachable or
+      # changes shape, that step is allowed to fail (continue-on-error) and the
+      # pipeline proceeds with the last committed data — the fetchers never write
+      # partial/fabricated values, so worst case is "data unchanged today". The
+      # simulation/build/verify below are NOT tolerant: a failure there aborts
+      # before the commit, leaving the live site untouched.
+      - name: Fetch current Elo ratings (best-effort)
+        continue-on-error: true
         run: python fetch_elo.py
 
-      - name: Fetch finished match results
+      - name: Fetch finished match results (best-effort)
+        continue-on-error: true
         run: python fetch_results.py
 
       - name: Run Monte-Carlo simulation

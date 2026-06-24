@@ -24,7 +24,6 @@ import argparse
 import datetime
 import json
 import os
-import re
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,36 +32,25 @@ ELO_FILE = os.path.join(HERE, "elo_ratings.json")
 # eloratings.net current ratings page (lists all national teams with ratings).
 ELO_URL = "https://www.eloratings.net/World.tsv"
 
-# Map eloratings.net country names -> our canonical 48 keys.
-# Only entries whose spelling differs from our keys need to appear here;
-# names that already match our keys (e.g. "Argentina", "Spain") map through
-# identity in fetch_live(). These cover the known divergences.
-NAME_MAP = {
-    "United States": "USA",
-    "USA": "USA",
-    "Korea Republic": "South Korea",
-    "Korea DPR": "North Korea",  # not in our 48; harmless if present
-    "South Korea": "South Korea",
-    "Cote d'Ivoire": "Ivory Coast",
-    "Côte d'Ivoire": "Ivory Coast",
-    "Ivory Coast": "Ivory Coast",
-    "Cape Verde": "Cape Verde",
-    "Cabo Verde": "Cape Verde",
-    "DR Congo": "D.R. Congo",
-    "Congo DR": "D.R. Congo",
-    "D.R. Congo": "D.R. Congo",
-    "Bosnia and Herzegovina": "Bosnia & Herzegovina",
-    "Bosnia/Herzegovina": "Bosnia & Herzegovina",
-    "Bosnia & Herzegovina": "Bosnia & Herzegovina",
-    "Curacao": "Curacao",
-    "Curaçao": "Curacao",
-    "Czechia": "Czech Republic",
-    "Czech Republic": "Czech Republic",
-    "Turkiye": "Turkey",
-    "Türkiye": "Turkey",
-    "Turkey": "Turkey",
-    "IR Iran": "Iran",
-    "Iran": "Iran",
+# Map eloratings.net country CODES -> our canonical 48 keys.
+# World.tsv is tab-separated; each row is a team with its ISO 3166-1 alpha-2
+# code in column 2 and its current Elo rating in column 3 (the older
+# quoted-full-name format is gone). Codes are standard ISO with eloratings'
+# football quirks: England = EN, Scotland = SQ. This covers exactly our 48.
+CODE_TO_NAME = {
+    "AR": "Argentina", "ES": "Spain", "FR": "France", "EN": "England",
+    "CO": "Colombia", "PT": "Portugal", "BR": "Brazil", "NL": "Netherlands",
+    "DE": "Germany", "NO": "Norway", "JP": "Japan", "HR": "Croatia",
+    "MX": "Mexico", "CH": "Switzerland", "BE": "Belgium", "MA": "Morocco",
+    "EC": "Ecuador", "UY": "Uruguay", "AT": "Austria", "US": "USA",
+    "SN": "Senegal", "PY": "Paraguay", "TR": "Turkey", "AU": "Australia",
+    "DZ": "Algeria", "CA": "Canada", "KR": "South Korea", "SQ": "Scotland",
+    "IR": "Iran", "EG": "Egypt", "CI": "Ivory Coast", "SE": "Sweden",
+    "CZ": "Czech Republic", "UZ": "Uzbekistan", "PA": "Panama",
+    "CD": "D.R. Congo", "JO": "Jordan", "CV": "Cape Verde",
+    "BA": "Bosnia & Herzegovina", "SA": "Saudi Arabia", "IQ": "Iraq",
+    "GH": "Ghana", "TN": "Tunisia", "NZ": "New Zealand", "HT": "Haiti",
+    "ZA": "South Africa", "CW": "Curacao", "QA": "Qatar",
 }
 
 
@@ -82,14 +70,6 @@ def required_keys():
     return sorted(data["ratings"].keys())
 
 
-def _map_name(elo_name):
-    """Map an eloratings.net country name to our canonical key (or identity)."""
-    name = elo_name.strip()
-    if name in NAME_MAP:
-        return NAME_MAP[name]
-    return name
-
-
 def fetch_live(url=ELO_URL, timeout=30):
     """Best-effort fetch + parse of current Elo ratings from eloratings.net.
 
@@ -98,14 +78,14 @@ def fetch_live(url=ELO_URL, timeout=30):
     fewer than all 48 required teams (so callers never get partial data).
 
     Parse strategy: eloratings.net publishes a tab-separated World.tsv where
-    each row is a team; the country name is a quoted field and the current
-    rating is the first integer 1000-2500 on that row. We pull (name, rating)
-    pairs and map names through NAME_MAP. This is deterministic given the
-    fetched bytes.
+    each row is a team. Column 2 is the ISO 3166-1 alpha-2 country code and
+    column 3 is the current Elo rating. We map known codes through
+    CODE_TO_NAME and keep ratings in the plausible band. Deterministic given
+    the fetched bytes.
     """
     needed = set(required_keys())
     req = urllib.request.Request(
-        url, headers={"User-Agent": "wc2026-simulator/1.0 (+stdlib urllib)"}
+        url, headers={"User-Agent": "Mozilla/5.0 (wc2026-simulator daily refresh)"}
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -116,31 +96,19 @@ def fetch_live(url=ELO_URL, timeout=30):
         ) from exc
 
     ratings = {}
-    # Each line: fields separated by tabs. A team name appears as a quoted
-    # string; the current rating is a 4-digit integer in the typical Elo band.
-    name_re = re.compile(r'"([^"]+)"')
-    int_re = re.compile(r"\b(\d{4})\b")
     for line in raw.splitlines():
-        if not line.strip():
+        f = line.split("\t")
+        if len(f) < 4:
             continue
-        nm = name_re.search(line)
-        if not nm:
+        ours = CODE_TO_NAME.get(f[2].strip())
+        if ours is None or ours not in needed:
             continue
-        ours = _map_name(nm.group(1))
-        if ours not in needed:
+        try:
+            rating = int(f[3])
+        except ValueError:
             continue
-        # First plausible Elo-range integer on the row is the current rating.
-        rating = None
-        for m in int_re.finditer(line):
-            val = int(m.group(1))
-            if 1000 <= val <= 2500:
-                rating = val
-                break
-        if rating is None:
-            continue
-        # Keep the highest if a team somehow appears twice; ratings are stable.
-        if ours not in ratings:
-            ratings[ours] = rating
+        if 1000 <= rating <= 2500:
+            ratings.setdefault(ours, rating)  # first row per code is the current rating
 
     if not ratings:
         raise RuntimeError(
