@@ -85,12 +85,13 @@
 "use strict";
 (function () {
 
-  // ===================== TUNABLE CONSTANTS (ported verbatim) =====================
-  // A child branch is shown only if its probability *given its parent* is >= PRUNE.
-  const PRUNE = 0.05;        // decision-tree display threshold (5%)
+  // ===================== TUNABLE CONSTANTS =====================
+  // Tree breadth is fixed by COUNT, not a probability threshold: the root fans
+  // out to LAYER_CAPS[0] opponents (2nd layer), and each of those to
+  // LAYER_CAPS[1] (3rd layer) → 4 then 4×3 = 12 nodes. Tune here.
+  const LAYER_CAPS = [4, 3]; // children per node, by depth (0 = root)
   const PRUNE_PIE = 0.012;   // pie explorer hides slices smaller than this
   const MAXD = 2;            // generations shown before clicking deeper
-  const TOPN = 3;            // top-N opponents per tree node
 
   // ===================== team colors =====================
   // Names must match the data keys. Fallback #6f86ad for anything unmapped.
@@ -534,9 +535,9 @@
       flat.push(node);
       if (depth < MAXD && last.round < 6 && last.round !== 99) {
         const cs = childrenOfRoot(path, M)
-          .filter(c => c.kind !== 'lose' && c.condP >= PRUNE)
+          .filter(c => c.kind !== 'lose' && c.condP > 0)
           .sort((a, b) => b.condP - a.condP)
-          .slice(0, TOPN);
+          .slice(0, LAYER_CAPS[depth] || 3);
         for (const c of cs) {
           const cp = c.kind === 'champ'
             ? path.concat([{ round: 6, opp: null }])
@@ -552,9 +553,15 @@
     };
     rec(st.treeRoot, 1, 0);
 
-    const rowH = Math.max(56, Math.min(150, (H - 70) / Math.max(leafCount, 1)));
+    const rowH = Math.max(42, Math.min(150, (H - 40) / Math.max(leafCount, 1)));
     const yTop = (H - rowH * Math.max(leafCount, 1)) / 2 + rowH / 2;
     const pos = flat.map(n => ({ x: X0 + n.depth * COLW, y: yTop + n.y * rowH }));
+
+    // per-column node count → a radius cap so a crowded column (e.g. 12 in the
+    // 3rd layer) shrinks to fit, while the root / early columns stay big.
+    const depthCount = {};
+    flat.forEach(n => { depthCount[n.depth] = (depthCount[n.depth] || 0) + 1; });
+    const maxRForDepth = d => Math.min(72, (H / Math.max(depthCount[d], 1)) * 0.46);
 
     // edges
     for (const e of edges) {
@@ -574,7 +581,7 @@
     for (let i = 0; i < flat.length; i++) {
       const n = flat[i], p = pos[i];
       if (n.kind === 'champ' || n.kind === 'lose') {
-        const r = Math.max(13, 11 + 26 * Math.sqrt(n.cond));
+        const r = Math.min(Math.max(13, 11 + 26 * Math.sqrt(n.cond)), maxRForDepth(n.depth));
         const gold = n.kind === 'champ';
         const node = el('div', {
           title: gold ? 'World Cup won' : 'Eliminated',
@@ -596,30 +603,48 @@
         ]);
         anim.appendChild(node);
       } else {
-        const r = Math.max(20, 18 + 44 * Math.sqrt(n.cond));
+        // Node = a win/lose donut for THIS match. Ring: green = win chance,
+        // muted red = lose. Size still encodes how likely we are to reach the
+        // node (sqrt of its conditional reach prob); capped to the row pitch.
+        let r = Math.max(20, 18 + 44 * Math.sqrt(n.cond));
+        r = Math.min(r, maxRForDepth(n.depth));
         const lab = nodeLabel(n.last, M);
-        const col = n.last.round <= 0 ? '#1f7fc4' : n.last.round === 6 ? '#FECC00' : oppColor(n.last.opp.name);
+        const teamCol = n.last.round <= 0 ? '#1f7fc4' : n.last.round === 6 ? '#FECC00' : oppColor(n.last.opp.name);
         const isRoot = n.depth === 0;
-        const fs = Math.max(10, r * 0.26);
+        // win chance of the match at this node (group decider/knockouts root = advance)
+        const winP = n.last.round <= 0 ? M.advance : beatOf(M, n.last.round - 1, n.last.opp.name);
         const clickable = n.depth > 0;
+        const deg = Math.round(winP * 360);
+        const oppName = n.last.round <= 0 ? (M.remainingOpponent || 'group') : n.last.opp.name;
+        const tip = state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP);
+        const hole = r * 0.62;            // donut hole radius
+        const wfs = Math.max(9, hole * 0.7);   // win% font
+        const showName = r >= 27;         // only big nodes have room for the name
+        const holeKids = [
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.04em', fontSize: Math.max(7, hole * 0.34) + 'px', color: '#9fb4d6', lineHeight: '1' }, text: lab.tag })
+        ];
+        if (showName) holeKids.push(el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: Math.max(8, hole * 0.42) + 'px', marginTop: '1px', color: teamCol, maxWidth: (hole * 1.8) + 'px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: oppName }));
+        holeKids.push(el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: wfs + 'px', marginTop: '1px', color: '#eaf1fb', lineHeight: '1' }, text: pct(winP) }));
         const node = el('div', {
-          title: clickable ? 'Click to focus this scenario' : 'Current root',
+          title: tip,
           onclick: clickable ? function () { rerootTree(n.path); } : null,
           style: {
             position: 'absolute', left: p.x + 'px', top: p.y + 'px', width: (r * 2) + 'px', height: (r * 2) + 'px',
             marginLeft: (-r) + 'px', marginTop: (-r) + 'px', borderRadius: '50%',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: clickable ? 'pointer' : 'default',
-            background: 'radial-gradient(circle at 38% 30%, rgba(255,255,255,.34), ' + col + ' 72%)',
-            color: '#fff',
-            border: isRoot ? '2.5px solid #FECC00' : '1px solid rgba(255,255,255,.2)',
-            boxShadow: isRoot ? '0 0 24px rgba(254,204,0,.4)' : '0 10px 26px -10px ' + col,
+            background: 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)',
+            border: isRoot ? '2.5px solid #FECC00' : '1px solid ' + teamCol,
+            boxShadow: isRoot ? '0 0 24px rgba(254,204,0,.4)' : '0 10px 26px -10px ' + teamCol,
             transition: 'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex: isRoot ? 5 : 3, userSelect: 'none'
           }
         }, [
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.05em', opacity: '.85', fontSize: Math.max(8, fs * 0.62) + 'px' }, text: lab.tag }),
-          el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: fs + 'px', marginTop: '1px' }, text: lab.name }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: Math.max(9, fs * 0.74) + 'px', marginTop: '2px' }, text: pct(n.cond) })
+          el('div', {
+            style: {
+              position: 'absolute', width: (hole * 2) + 'px', height: (hole * 2) + 'px', borderRadius: '50%',
+              background: '#0b1d3c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+            }
+          }, holeKids)
         ]);
         anim.appendChild(node);
       }
@@ -673,6 +698,10 @@
         const nm = c.kind === 'champ' ? 'Champions ★' : c.kind === 'lose' ? (c.label || 'Eliminated') : c.opp.name;
         const beat = isOpp && c.kind === 'opp' ? beatOf(M, c.round - 1, c.opp.name) : 0;
         const sub = c.kind === 'opp' ? ('face ' + pct(c.condP) + ' · beat ' + pct(beat)) : pct(c.condP);
+        // hover tooltip on the slice (shows the legend / team name)
+        const titleEl = document.createElementNS(svgNS, 'title');
+        titleEl.textContent = c.kind === 'opp' ? (nm + ' — face ' + pct(c.condP) + ' · beat ' + pct(beat)) : (nm + ' — ' + pct(c.condP));
+        path.appendChild(titleEl);
         labels.push(el('div', {
           onclick: onSlice,
           style: {
