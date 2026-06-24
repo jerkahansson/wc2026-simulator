@@ -5,8 +5,9 @@ through the 2026 FIFA World Cup knockout bracket. For any of the 48 teams it ans
 at a glance and interactively: **how likely are they to reach each round, who might
 they face, and how do those odds shift as you walk down a scenario?**
 
-Live (GitHub Pages preview): <https://jerkahansson.github.io/wc2026-simulator/>
-Built as a single self-contained `index.html`; production home is Cloudflare Pages.
+**Live: <https://road-to-the-final-wc26.pages.dev/>** (Cloudflare Pages)
+Mirror: <https://jerkahansson.github.io/wc2026-simulator/> (GitHub Pages)
+Built as a single self-contained `index.html`.
 
 Two views over a shared stats panel:
 1. **Decision tree** — a branching probability tree (node size = probability).
