@@ -88,8 +88,8 @@
   // ===================== TUNABLE CONSTANTS =====================
   // Tree breadth is fixed by COUNT, not a probability threshold: the root fans
   // out to LAYER_CAPS[0] opponents (2nd layer), and each of those to
-  // LAYER_CAPS[1] (3rd layer) → 4 then 4×3 = 12 nodes. Tune here.
-  const LAYER_CAPS = [4, 3]; // children per node, by depth (0 = root)
+  // LAYER_CAPS[1] (3rd layer) → 3 then 3×3 = 9 nodes. Tune here.
+  const LAYER_CAPS = [3, 3]; // children per node, by depth → 3 in 2nd layer, 9 in 3rd
   const PRUNE_PIE = 0.012;   // pie explorer hides slices smaller than this
   const MAXD = 2;            // generations shown before clicking deeper
 
@@ -169,6 +169,7 @@
       beatLookup,
       champion: reachObj.champion,
       remainingOpponent: team.groupBlock ? team.groupBlock.remainingOpponent : null,
+      groupName: team.groupBlock ? team.groupBlock.name : null,
       // When the group stage is over (remainingOpponent == null) we root the
       // tree/pie at the first knockout round instead of a group decider.
       hasGroupDecider: !!(team.groupBlock && team.groupBlock.remainingOpponent)
@@ -369,7 +370,7 @@
 
     // ---------- stage ----------
     const stageHint = st.view === 'tree'
-      ? 'Each branch is a possible opponent · size = probability · branches under 5% are hidden · click a node to make it the root'
+      ? 'Each node: green/red ring = chance to win that game · number = chance to reach it · size = probability · click a node to make it the root'
       : 'The pie shows how this match resolves · click a team slice to follow that path into the next round';
 
     const stageArea = el('div', { 'data-stagearea': '1', class: 'stagearea' });
@@ -603,28 +604,37 @@
         ]);
         anim.appendChild(node);
       } else {
-        // Node = a win/lose donut for THIS match. Ring: green = win chance,
-        // muted red = lose. Size still encodes how likely we are to reach the
-        // node (sqrt of its conditional reach prob); capped to the row pitch.
+        // Node = a donut for the match at this state. KNOCKOUT nodes: ring is
+        // green = win chance / red = lose; the big number is the chance we REACH
+        // this matchup. The GROUP node (vs the last group opponent) is special —
+        // qualifying is not a single win/lose match, so its ring is blue =
+        // advance / grey = out and its number is the advance chance.
         let r = Math.max(20, 18 + 44 * Math.sqrt(n.cond));
         r = Math.min(r, maxRForDepth(n.depth));
         const lab = nodeLabel(n.last, M);
-        const teamCol = n.last.round <= 0 ? '#1f7fc4' : n.last.round === 6 ? '#FECC00' : oppColor(n.last.opp.name);
+        const isGroup = n.last.round <= 0;          // group decider / knockouts root
+        const teamCol = isGroup ? '#1f7fc4' : oppColor(n.last.opp.name);
         const isRoot = n.depth === 0;
-        // win chance of the match at this node (group decider/knockouts root = advance)
-        const winP = n.last.round <= 0 ? M.advance : beatOf(M, n.last.round - 1, n.last.opp.name);
         const clickable = n.depth > 0;
+        const oppName = isGroup ? (M.remainingOpponent || 'group') : n.last.opp.name;
+        // ring fraction (green/blue portion) and the number shown in the hole
+        const winP = isGroup ? M.advance : beatOf(M, n.last.round - 1, n.last.opp.name);
+        const numLabel = isGroup ? pct(M.advance) : pct(n.cond);   // advance vs chance-to-reach
         const deg = Math.round(winP * 360);
-        const oppName = n.last.round <= 0 ? (M.remainingOpponent || 'group') : n.last.opp.name;
-        const tip = state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP);
+        const ring = isGroup
+          ? 'conic-gradient(#1f7fc4 0deg ' + deg + 'deg, rgba(140,175,225,.20) ' + deg + 'deg 360deg)'
+          : 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)';
+        const tip = isGroup
+          ? (state.country + ' advance from ' + (M.groupName || 'the group') + ': ' + pct(M.advance) + ' (out ' + pct(1 - M.advance) + ') — final game vs ' + oppName)
+          : (state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP) + ' · reach this tie ' + pct(n.cond));
         const hole = r * 0.62;            // donut hole radius
-        const wfs = Math.max(9, hole * 0.7);   // win% font
+        const wfs = Math.max(9, hole * 0.7);   // number font
         const showName = r >= 27;         // only big nodes have room for the name
         const holeKids = [
           el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.04em', fontSize: Math.max(7, hole * 0.34) + 'px', color: '#9fb4d6', lineHeight: '1' }, text: lab.tag })
         ];
         if (showName) holeKids.push(el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: Math.max(8, hole * 0.42) + 'px', marginTop: '1px', color: teamCol, maxWidth: (hole * 1.8) + 'px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: oppName }));
-        holeKids.push(el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: wfs + 'px', marginTop: '1px', color: '#eaf1fb', lineHeight: '1' }, text: pct(winP) }));
+        holeKids.push(el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: wfs + 'px', marginTop: '1px', color: '#eaf1fb', lineHeight: '1' }, text: numLabel }));
         const node = el('div', {
           title: tip,
           onclick: clickable ? function () { rerootTree(n.path); } : null,
@@ -633,7 +643,7 @@
             marginLeft: (-r) + 'px', marginTop: (-r) + 'px', borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: clickable ? 'pointer' : 'default',
-            background: 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)',
+            background: ring,
             border: isRoot ? '2.5px solid #FECC00' : '1px solid ' + teamCol,
             boxShadow: isRoot ? '0 0 24px rgba(254,204,0,.4)' : '0 10px 26px -10px ' + teamCol,
             transition: 'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex: isRoot ? 5 : 3, userSelect: 'none'
