@@ -396,12 +396,14 @@ def group_standings():
     return standings, remaining, stage
 
 
-TREE_MIN_N = 5           # only keep a child backed by at least this many sims (anti-noise)
 TREE_ROOT_MIN = 0.005    # keep an R32 opponent reached >= 0.5% of the time overall
-TREE_MAX_KIDS = 4        # keep the top-4 most-likely children per node (no prob threshold).
-                         # The tree shows 3/level and the pie hides <1.2% slices, so 4 covers
-                         # everything displayed; capping here (vs 6) keeps the inlined data file
-                         # servable now that the low TREE_MIN_N admits many more deep branches.
+# Max children per node, BY the node's round-depth (0=R32 .. 3=SF). We keep the
+# top-K most-likely continuations by sim count with NO hard sample floor, so the
+# tree branches as far as the data allows and always reaches the Final. Tapering
+# (wide early, a touch narrower deep) keeps it bushy without exploding the file:
+# breadth is the expensive axis (K wide ^ 5 deep x 48 teams). Thin deep branches
+# are kept but flagged with "*" in the UI (few sims behind them).
+TREE_KIDS_BY_DEPTH = [4, 4, 3, 3]
 
 
 def build_conditional_tree(root, remaining_opp, n_sims):
@@ -410,10 +412,11 @@ def build_conditional_tree(root, remaining_opp, n_sims):
     reachProb (absolute), beatProb (chance to win that match), and children =
     the conditional next-round opponents.
 
-    No probability threshold: each node simply keeps its TOP-N most-likely
-    next opponents (by sim count), bounded only by a small sample floor to drop
-    noise. Breadth is defined by the cap, not a probability gate — so a node
-    always shows its realistic continuations and you can drill toward the Final."""
+    Breadth tapers with depth (TREE_KIDS_BY_DEPTH): each node keeps its top-K
+    most-likely continuations by sim count with no hard floor, so the tree stays
+    bushy and every node with >=1 simulated continuation drills all the way to the
+    Final — no pruning dead-ends. A branch only ends early at a node where the team
+    never won that match in any sim (then there is genuinely nowhere to go)."""
     def emit(node, depth, opp, n_parent):
         n, w = node["n"], node["w"]
         out = {
@@ -427,8 +430,7 @@ def build_conditional_tree(root, remaining_opp, n_sims):
         }
         if depth < len(ROUND_SEQ) - 1 and n > 0:   # not the Final → may have kids
             ranked = sorted(node["kids"].items(), key=lambda kv: -kv[1]["n"])
-            kept = [(o2, sub) for o2, sub in ranked if sub["n"] >= TREE_MIN_N]
-            for o2, sub in kept[:TREE_MAX_KIDS]:
+            for o2, sub in ranked[:TREE_KIDS_BY_DEPTH[depth]]:
                 out["children"].append(emit(sub, depth + 1, o2, n))
         return out
 

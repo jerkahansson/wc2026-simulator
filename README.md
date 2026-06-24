@@ -49,11 +49,13 @@ Per team (the *marginal* shape from the design handoff §6a):
 The decision tree, pie explorer, and left-panel opponents are all driven by the
 **conditional `tree`** — so deeper branches show the real bracket geography (which R16
 region you land in depends on *which* R32 opponent you beat), not a repeated marginal set.
-Each node keeps its **top-6 most-likely** next opponents, backed by ≥5 sims (a small
-anti-noise floor), so the main lines drill all the way toward the Final instead of
-dead-ending early. In the UI, each node's **number and size are its probability given the
-parent node**; the current root shows no number. Branches reached by few simulations are
-flagged with a trailing `*` (their percentages are statistically noisy — indicative only).
+Each node keeps its top continuations by sim count, with breadth **tapering by round**
+(`TREE_KIDS_BY_DEPTH = [4, 4, 3, 3]`) and **no hard sample floor** — so the tree stays
+bushy and every branch with at least one simulated continuation drills all the way to the
+Final (no pruning dead-ends; a branch only ends where the team never won that match in any
+sim). In the UI, each node's **number and size are its probability given the parent node**;
+the current root shows no number. Thin deep branches (few simulations behind them) are
+flagged with a trailing `*` — their percentages are statistically noisy, indicative only.
 
 Default `n_sims` is **500 000** (~3 min). More sims make the displayed conditional
 percentages more *stable* (deeper nodes get more samples); they don't change the prune rule.
