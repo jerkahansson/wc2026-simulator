@@ -5,7 +5,8 @@ through the 2026 FIFA World Cup knockout bracket. For any of the 48 teams it ans
 at a glance and interactively: **how likely are they to reach each round, who might
 they face, and how do those odds shift as you walk down a scenario?**
 
-Live site: built as a single self-contained `index.html`, deployed on Cloudflare Pages.
+Live (GitHub Pages preview): <https://jerkahansson.github.io/wc2026-simulator/>
+Built as a single self-contained `index.html`; production home is Cloudflare Pages.
 
 Two views over a shared stats panel:
 1. **Decision tree** — a branching probability tree (node size = probability).
@@ -44,12 +45,13 @@ Per team (the *marginal* shape from the design handoff §6a):
 The decision tree, pie explorer, and left-panel opponents are all driven by the
 **conditional `tree`** — so deeper branches show the real bracket geography (which R16
 region you land in depends on *which* R32 opponent you beat), not a repeated marginal set.
-Branches are pruned at **0.5% absolute probability**, which also guarantees every displayed
-node is well-sampled (≥0.5%·`n_sims` runs). Deep paths for weak teams terminate early by
-design — Sweden reaching the final is <0.5%, so its tree honestly stops around the QF.
+Branches are pruned **relative to the parent** (a child is kept if it's ≥5% likely *given*
+you're at its parent, backed by ≥30 sims), so the main lines drill all the way toward the
+Final instead of dead-ending early. In the UI, each node's **number and size are its
+probability given the parent node**; the current root shows no number.
 
-Default `n_sims` is **200 000** (~75s). More sims don't make the tree *deeper* (the 0.5%
-prune is a probability threshold), they make displayed percentages more *stable*.
+Default `n_sims` is **200 000** (~75s). More sims make the displayed conditional
+percentages more *stable* (deeper nodes get more samples); they don't change the prune rule.
 
 ## Rebuild
 
