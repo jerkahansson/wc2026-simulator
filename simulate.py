@@ -279,6 +279,9 @@ def run(n_sims, seed=7, with_opponents=False):
     reachc = {t: defaultdict(int) for t in teams}          # round -> # sims reached
     face = {t: {r: defaultdict(int) for r in ROUND_SEQ} for t in teams}  # round -> opp -> faced
     winc = {t: {r: defaultdict(int) for r in ROUND_SEQ} for t in teams}  # round -> opp -> won
+    # conditional knockout trie per team: root -> kids[oppR32] -> kids[oppR16] -> ...
+    # each node {n: #sims that reached this exact path, w: #won that match, kids}.
+    trie = {t: {"n": 0, "w": 0, "kids": {}} for t in teams}
     for _ in range(n_sims):
         winners, runners, champ, qualifiers, r16, qf, sf, fin, paths = simulate_once(rng)
         for letter, t in winners.items():
@@ -298,11 +301,20 @@ def run(n_sims, seed=7, with_opponents=False):
         c[champ]["winner"] += 1
         if with_opponents:
             for t, steps in paths.items():
-                for lab, opp, won in steps:
+                node = trie[t]                      # walk/extend the conditional trie
+                for lab, opp, won in steps:          # steps are in round order R32..Final
                     reachc[t][lab] += 1
                     face[t][lab][opp] += 1
                     if won:
                         winc[t][lab][opp] += 1
+                    kid = node["kids"].get(opp)
+                    if kid is None:
+                        kid = {"n": 0, "w": 0, "kids": {}}
+                        node["kids"][opp] = kid
+                    kid["n"] += 1
+                    if won:
+                        kid["w"] += 1
+                    node = kid
 
     out = {}
     for t in teams:
@@ -320,7 +332,7 @@ def run(n_sims, seed=7, with_opponents=False):
         }
     if not with_opponents:
         return out
-    agg = {"reachc": reachc, "face": face, "winc": winc}
+    agg = {"reachc": reachc, "face": face, "winc": winc, "trie": trie}
     return out, agg
 
 
@@ -373,12 +385,50 @@ def group_standings():
     return standings, remaining, stage
 
 
+TREE_PRUNE_ABS = 0.005   # drop tree branches below 0.5% absolute probability
+
+
+def build_conditional_tree(root, remaining_opp, n_sims):
+    """Emit the recursive conditional knockout tree (handoff §6b) from a team's
+    trie. Each node: the match (round, opponent), condProb (vs its parent),
+    reachProb (absolute), beatProb (chance to win that match), and children =
+    the conditional next-round opponents (pruned at 0.5% absolute probability)."""
+    def emit(node, depth, opp, n_parent):
+        n, w = node["n"], node["w"]
+        out = {
+            "round": ROUND_SEQ[depth],
+            "opponent": opp,
+            "elo": ELO[opp],
+            "condProb": round(n / n_parent, 5) if n_parent else 0.0,
+            "reachProb": round(n / n_sims, 5),
+            "beatProb": round(w / n, 5) if n else 0.0,
+            "children": [],
+        }
+        if depth < len(ROUND_SEQ) - 1:    # not the Final → may have next-round kids
+            for o2, sub in sorted(node["kids"].items(), key=lambda kv: -kv[1]["n"]):
+                if sub["n"] / n_sims >= TREE_PRUNE_ABS:
+                    out["children"].append(emit(sub, depth + 1, o2, n))
+        return out
+
+    adv = sum(s["n"] for s in root["kids"].values())
+    children = []
+    for opp, sub in sorted(root["kids"].items(), key=lambda kv: -kv[1]["n"]):
+        if sub["n"] / n_sims >= TREE_PRUNE_ABS:
+            children.append(emit(sub, 0, opp, n_sims))
+    return {
+        "round": "GROUP",
+        "opponent": remaining_opp,
+        "advanceProb": round(adv / n_sims, 5),
+        "children": children,
+    }
+
+
 def build_rich_payload(out, agg, group, n_sims):
     """Assemble the path-explorer data contract (marginal shape, handoff §6a):
     per team a reach block, real group standings, championProb/predictedFinish,
     and rounds[] of opponent face/beat distributions."""
     standings, remaining, stage = group_standings()
-    reachc, face, winc = agg["reachc"], agg["face"], agg["winc"]
+    reachc, face, winc, trie = agg["reachc"], agg["face"], agg["winc"], agg["trie"]
     teams = {}
     for t, d in out.items():
         letter = group[t]
@@ -412,13 +462,14 @@ def build_rich_payload(out, agg, group, n_sims):
                 "standings": std,
             },
             "rounds": rounds,
+            "tree": build_conditional_tree(trie[t], remaining.get(t), n_sims),
         }
     return teams
 
 
 def main():
     global B, T
-    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 50000
+    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 200000
     B, T, mae = calibrate()
     print(f"Calibrated: B={B}  T={T}  (1X2 mean abs error vs market = {mae:.4f})")
 

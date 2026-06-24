@@ -193,28 +193,11 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     // reach[] index: 0=advance,1=r16,2=qf,3=sf,4=final,5=champion
     const reach = [reachObj.advance, reachObj.r16, reachObj.qf, reachObj.sf, reachObj.final, reachObj.champion];
 
-    // faceDists[r] for r=0..4 (R32..Final): the opponents at that round.
-    // p = faceProb (conditional on reaching that round), already sorted desc.
-    const faceDists = team.rounds.map(rd =>
-      rd.opponents.map(o => ({
-        name: o.name, elo: o.elo, p: o.faceProb, beatProb: o.beatProb, color: oppColor(o.name)
-      }))
-    );
-
-    // Lookup roundName -> {oppName -> {beatProb, elo}} to resolve "beat" quickly.
-    const beatLookup = {};
-    team.rounds.forEach((rd, i) => {
-      const m = {};
-      rd.opponents.forEach(o => { m[o.name] = { beatProb: o.beatProb, elo: o.elo }; });
-      beatLookup[i] = m; // keyed by round index 0..4
-    });
-
     return {
       team,
       advance: reachObj.advance,
       reach,
-      faceDists,
-      beatLookup,
+      tree: team.tree,        // conditional knockout tree (the real branching)
       champion: reachObj.champion,
       remainingOpponent: team.groupBlock ? team.groupBlock.remainingOpponent : null,
       groupName: team.groupBlock ? team.groupBlock.name : null,
@@ -224,50 +207,61 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     };
   }
 
-  // Resolve the beatProb for the opponent we just beat to reach the current node.
-  // round index is the round in which that opponent was faced (0..4).
-  function beatOf(M, roundIdx, oppName) {
-    const m = M.beatLookup[roundIdx];
-    if (m && m[oppName] && typeof m[oppName].beatProb === 'number') return m[oppName].beatProb;
-    return 0; // unknown opponent in a noisy deep round -> treat as already terminal
+  // round string ("GROUP"/"R32"/.../"Final") -> our numeric round code (0/1../5).
+  function roundNum(s) { return { GROUP: 0, R32: 1, R16: 2, QF: 3, SF: 4, Final: 5 }[s]; }
+
+  // Walk the conditional tree to the node at the end of `path`. Returns the tree
+  // node {round, opponent, advanceProb|beatProb, children, ...} or null if the
+  // path runs past where the tree was emitted (pruned below 0.5%).
+  function nodeAtPath(M, path) {
+    let node = M.tree;                 // GROUP root
+    for (let i = 1; i < path.length; i++) {
+      const want = path[i];
+      if (want.round === 6) return node;   // champion terminal sits on the Final node
+      const kids = node.children || [];
+      node = kids.find(c => roundNum(c.round) === want.round && c.opponent === (want.opp && want.opp.name));
+      if (!node) return null;
+    }
+    return node;
   }
 
-  // ===================== childrenOf(path) — real numbers =====================
+  // Win chance of the match AT the current node: advance for the group/knockout
+  // root, beatProb for a knockout match (0 if we've drilled past the emitted tree).
+  function nodeBeat(path, M) {
+    const last = path[path.length - 1];
+    if (last.round === 6) return 0;
+    const node = nodeAtPath(M, path);
+    if (!node) return 0;
+    return (last.round <= 0) ? node.advanceProb : node.beatProb;
+  }
+
+  // ===================== childrenOf(path) — CONDITIONAL tree =====================
   // path is an array of {round, opp:{name,elo}|null}. round encoding:
-  //   0=group decider, 1=R32, 2=R16, 3=QF, 4=SF, 5=Final, 6=champion, 99=eliminated.
-  // Returns [{kind:'opp'|'lose'|'champ', round, opp?, condP, label?}].
+  //   0=group decider, -1=knockout root, 1=R32, 2=R16, 3=QF, 4=SF, 5=Final,
+  //   6=champion, 99=eliminated.
+  // Children come from the node's true conditional next-opponent distribution
+  // (P(face Y | we beat the current opponent)), straight from simulate.py's tree.
   function childrenOf(path, M) {
     const last = path[path.length - 1];
     if (last.round >= 6) return [];
+    const node = nodeAtPath(M, path);
+    if (!node) return [];
+    const isRoot = last.round <= 0;             // group decider / knockout root
+    const winP = isRoot ? node.advanceProb : node.beatProb;
 
-    if (last.round === 0) {
-      // Group decider: children = each R32 opponent, condP = advance * faceProb.
-      const out = M.faceDists[0].map(o => ({
-        kind: 'opp', round: 1, opp: { name: o.name, elo: o.elo }, condP: M.advance * o.p
-      }));
-      out.push({ kind: 'lose', round: 99, condP: 1 - M.advance, label: 'Out in group' });
-      return out;
-    }
-
-    // last.round in 1..5: we have REACHED round `last.round`, facing last.opp.
-    // beat = our win prob vs last.opp, looked up in that round's distribution.
-    const beat = beatOf(M, last.round - 1, last.opp ? last.opp.name : null);
-
-    if (last.round === 5) {
-      // Final: win => champion, else lose.
+    if (last.round === 5) {                     // Final: win => champion, else lose
       return [
-        { kind: 'champ', round: 6, condP: beat },
-        { kind: 'lose', round: 99, condP: 1 - beat, label: 'Lose final' }
+        { kind: 'champ', round: 6, condP: node.beatProb },
+        { kind: 'lose', round: 99, condP: 1 - node.beatProb, label: 'Lose final' }
       ];
     }
 
-    // Rounds 1..4: children are next round's opponents (marginal approximation:
-    // reuse that round's marginal opponent distribution regardless of who we beat).
-    const pool = M.faceDists[last.round]; // opponents in the NEXT round
-    const out = pool.map(o => ({
-      kind: 'opp', round: last.round + 1, opp: { name: o.name, elo: o.elo }, condP: beat * o.p
+    const out = (node.children || []).map(c => ({
+      kind: 'opp', round: roundNum(c.round), opp: { name: c.opponent, elo: c.elo },
+      condP: c.condProb, beatProb: c.beatProb
     }));
-    out.push({ kind: 'lose', round: 99, condP: 1 - beat, label: 'Out in ' + RSHORT[last.round - 1] });
+    const label = isRoot ? 'Out in group' : 'Out in ' + RSHORT[last.round - 1];
+    out.push({ kind: 'lose', round: 99, condP: 1 - winP, label: label });
     return out;
   }
 
@@ -312,15 +306,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     return { round: -1, opp: null }; // synthetic "Knockouts" root
   }
 
-  // childrenOf handles round 0; this wrapper also handles the knockout root (-1):
-  // children = R32 opponents scaled by advance (same as a group decider, no 'lose').
+  // childrenOf already handles both the group decider (round 0) and the knockout
+  // root (round -1) via nodeAtPath, so this is just a stable alias.
   function childrenOfRoot(path, M) {
-    const last = path[path.length - 1];
-    if (last.round === -1) {
-      return M.faceDists[0].map(o => ({
-        kind: 'opp', round: 1, opp: { name: o.name, elo: o.elo }, condP: M.advance * o.p
-      }));
-    }
     return childrenOf(path, M);
   }
 
@@ -484,23 +472,40 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     // context section (group standings OR round opponents)
     const ctx = el('div', { style: { flex: '1 1 auto' } });
     if (focusRound >= 1 && focusRound <= 5) {
-      const title = ROUNDS[focusRound - 1] + ' · possible opponents';
-      const opps = M.faceDists[focusRound - 1].map(o => el('div', {
-        style: {
-          display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 11px', borderRadius: '9px',
-          background: 'rgba(140,175,225,.05)', border: '1px solid rgba(140,175,225,.1)'
-        }
-      }, [
-        el('div', { style: { width: '10px', height: '10px', borderRadius: '50%', background: o.color, flex: '0 0 auto' } }),
-        el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: '600', color: '#eaf1fb' }, text: o.name }),
-        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6' }, text: 'face ' + pct(o.p) }),
-        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#FECC00', width: '58px', textAlign: 'right' }, text: 'beat ' + pct(o.beatProb) })
-      ]));
-      ctx.appendChild(el('div', {}, [
-        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: title }),
-        el('div', { style: { fontSize: '12px', color: '#9fb4d6', marginBottom: '11px' }, text: 'Who ' + st.country + ' could face at this stage.' }),
-        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, opps)
-      ]));
+      // CONDITIONAL: who could they face NEXT, given the path drilled so far.
+      const activeLast = activePath[activePath.length - 1];
+      const winP = nodeBeat(activePath, M);
+      const kids = childrenOf(activePath, M).filter(c => c.kind === 'opp');
+      if (kids.length) {
+        const nextRound = ROUNDS[kids[0].round - 1];
+        const opps = kids.map(c => {
+          const faceCond = winP > 0 ? c.condP / winP : 0;  // P(face them | we get through)
+          return el('div', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 11px', borderRadius: '9px',
+              background: 'rgba(140,175,225,.05)', border: '1px solid rgba(140,175,225,.1)'
+            }
+          }, [
+            el('div', { style: { width: '10px', height: '10px', borderRadius: '50%', background: oppColor(c.opp.name), flex: '0 0 auto' } }),
+            el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: '600', color: '#eaf1fb' }, text: c.opp.name }),
+            el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6' }, text: 'face ' + pct(faceCond) }),
+            el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#FECC00', width: '58px', textAlign: 'right' }, text: 'beat ' + pct(c.beatProb) })
+          ]);
+        });
+        ctx.appendChild(el('div', {}, [
+          el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: nextRound + ' · possible opponents' }),
+          el('div', { style: { fontSize: '12px', color: '#9fb4d6', marginBottom: '11px' }, text: 'If ' + st.country + ' beat ' + activeLast.opp.name + ' — who they could face next.' }),
+          el('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, opps)
+        ]));
+      } else {
+        const msg = focusRound === 5
+          ? 'Win the final to lift the trophy — ' + pct(winP) + ' from here.'
+          : 'Deeper paths fall below the 0.5% cutoff at this sample size.';
+        ctx.appendChild(el('div', {}, [
+          el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: ROUNDS[focusRound - 1] + ' · vs ' + activeLast.opp.name }),
+          el('div', { style: { fontSize: '12px', color: '#9fb4d6' }, text: msg })
+        ]));
+      }
     } else if (focusRound === 6) {
       ctx.appendChild(el('div', {}, [
         el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: 'Champions of the world' }),
@@ -665,9 +670,10 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         const isRoot = n.depth === 0;
         const clickable = n.depth > 0;
         const oppName = isGroup ? (M.remainingOpponent || 'group') : n.last.opp.name;
-        // ring fraction (green/blue portion) and the number shown in the hole
-        const winP = isGroup ? M.advance : beatOf(M, n.last.round - 1, n.last.opp.name);
-        const numLabel = isGroup ? pct(M.advance) : pct(n.cond);   // advance vs chance-to-reach
+        // ring fraction (green/blue portion) and the number shown in the hole.
+        // winP is the CONDITIONAL win/advance chance at this exact node.
+        const winP = nodeBeat(n.path, M);
+        const numLabel = isGroup ? pct(winP) : pct(n.cond);   // advance vs chance-to-reach
         const deg = Math.round(winP * 360);
         const ring = isGroup
           ? 'conic-gradient(#1f7fc4 0deg ' + deg + 'deg, rgba(140,175,225,.20) ' + deg + 'deg 360deg)'
@@ -754,7 +760,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         const lr = Rpx + 58, lx = cx + lr * Math.cos(mid), ly = cy + lr * Math.sin(mid);
         const rightSide = Math.cos(mid) >= 0;
         const nm = c.kind === 'champ' ? 'Champions ★' : c.kind === 'lose' ? (c.label || 'Eliminated') : c.opp.name;
-        const beat = isOpp && c.kind === 'opp' ? beatOf(M, c.round - 1, c.opp.name) : 0;
+        const beat = c.kind === 'opp' ? (c.beatProb || 0) : 0;
         const sub = c.kind === 'opp' ? ('face ' + pct(c.condP) + ' · beat ' + pct(beat)) : pct(c.condP);
         // hover tooltip on the slice (shows the legend / team name)
         const titleEl = document.createElementNS(svgNS, 'title');
@@ -793,8 +799,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     else {
       centerTag = ROUNDS[last.round - 1];
       centerName = 'vs ' + last.opp.name;
-      const beat = beatOf(M, last.round - 1, last.opp.name);
-      centerSub = 'Win ' + pct(beat);
+      centerSub = 'Win ' + pct(nodeBeat(activePath, M));
     }
     const center = el('div', {
       style: { position: 'absolute', inset: '0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none', padding: '0 18px' }
