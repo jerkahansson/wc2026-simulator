@@ -5,3 +5,4 @@ __pycache__/
 _sim*.log
 .DS_Store
 _deploy/
+.wrangler/
