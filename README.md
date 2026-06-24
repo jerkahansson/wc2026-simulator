@@ -38,18 +38,23 @@ Per team (the *marginal* shape from the design handoff §6a):
 | `reach` | P(reach advance / R16 / QF / SF / Final / champion) |
 | `championProb`, `predictedFinish` | headline number + most-likely finish (deepest round with P≥0.5) |
 | `groupBlock` | real current group standings (Pld/GD/Pts) + remaining group opponent |
-| `rounds[]` | for R32→Final: opponents with `faceProb` (P(face them \| reached round)) and `beatProb` (empirical P(win that match)) |
+| `rounds[]` | per-round *marginal* opponent list (`faceProb`/`beatProb`) — kept for reference |
+| `tree` | the **conditional** knockout tree (handoff §6b): a recursive node per match with `condProb`, `reachProb`, `beatProb`, and its true conditional next-round opponents |
 
-`faceProb` is capped to the **top-8 opponents per round** for file size, so it can sum
-slightly below 1 (the dropped tail is the long list of rare opponents). Deep-round
-distributions for weak teams are inherently small-sample and noisy — that is honest MC
-output, not a bug. The decision tree reuses each round's *marginal* opponent
-distribution for levels below the root (the documented approximation).
+The decision tree, pie explorer, and left-panel opponents are all driven by the
+**conditional `tree`** — so deeper branches show the real bracket geography (which R16
+region you land in depends on *which* R32 opponent you beat), not a repeated marginal set.
+Branches are pruned at **0.5% absolute probability**, which also guarantees every displayed
+node is well-sampled (≥0.5%·`n_sims` runs). Deep paths for weak teams terminate early by
+design — Sweden reaching the final is <0.5%, so its tree honestly stops around the QF.
+
+Default `n_sims` is **200 000** (~75s). More sims don't make the tree *deeper* (the 0.5%
+prune is a probability threshold), they make displayed percentages more *stable*.
 
 ## Rebuild
 
 ```bash
-python simulate.py 50000   # writes sim_results.json
+python simulate.py 200000  # writes sim_results.json (default 200k; ~75s)
 python build_site.py       # writes index.html
 python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracket, invariants)
 ```
