@@ -455,7 +455,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
     // reach bars
     const barData = [
-      ['Advance', M.reach[0]], ['Round of 16', M.reach[1]], ['Quarter-final', M.reach[2]],
+      ['Round of 32', M.reach[0]], ['Round of 16', M.reach[1]], ['Quarter-final', M.reach[2]],
       ['Semi-final', M.reach[3]], ['Final', M.reach[4]], ['Champion', M.reach[5]]
     ];
     const bars = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
@@ -774,6 +774,17 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         const titleEl = document.createElementNS(svgNS, 'title');
         titleEl.textContent = c.kind === 'opp' ? (nm + ' — face ' + pct(c.condP) + ' · beat ' + pct(beat)) : (nm + ' — ' + pct(c.condP));
         path.appendChild(titleEl);
+        // For small slices the face/beat line just clutters — drop it below 2.5%
+        // (still available on hover via the slice tooltip). Keep the team name.
+        const labelKids = [
+          el('div', { style: { display: 'flex', alignItems: 'center', gap: '7px', justifyContent: rightSide ? 'flex-start' : 'flex-end' } }, [
+            el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: col } }),
+            el('div', { style: { fontSize: '13px', fontWeight: '700', color: '#eaf1fb' }, text: nm })
+          ])
+        ];
+        if (c.condP >= 0.025) {
+          labelKids.push(el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6', marginTop: '2px' }, text: sub }));
+        }
         labels.push(el('div', {
           onclick: onSlice,
           style: {
@@ -781,13 +792,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
             transform: 'translate(' + (rightSide ? '0' : '-100%') + ', -50%)',
             width: '150px', textAlign: rightSide ? 'left' : 'right', cursor: isOpp ? 'pointer' : 'default'
           }
-        }, [
-          el('div', { style: { display: 'flex', alignItems: 'center', gap: '7px', justifyContent: rightSide ? 'flex-start' : 'flex-end' } }, [
-            el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: col } }),
-            el('div', { style: { fontSize: '13px', fontWeight: '700', color: '#eaf1fb' }, text: nm })
-          ]),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6', marginTop: '2px' }, text: sub })
-        ]));
+        }, labelKids));
         a0 = a1;
       }
     } else {
