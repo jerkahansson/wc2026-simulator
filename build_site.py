@@ -138,8 +138,8 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   // out to LAYER_CAPS[0] opponents (2nd layer), each previewing LAYER_CAPS[1]
   // (3rd layer). 6 then 2 → up to 12 nodes (fits 540px readably). Re-rooting any
   // node re-shows its top-6. Tune here.
-  const LAYER_CAPS = [6, 2]; // children shown per node, by depth → 6 in 2nd layer, 2-deep preview
-                             // (re-rooting any node re-shows its top-6, matching the left list)
+  const LAYER_CAPS = [3, 3]; // children shown per node in the TREE → 1/3/9. The left
+                             // "possible opponents" list shows the full top-6 (emit cap).
   const PRUNE_PIE = 0.012;   // pie explorer hides slices smaller than this
   const MAXD = 2;            // generations shown before clicking deeper
 
