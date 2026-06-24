@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#06122c;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:rgba(140,175,225,.22);border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  svg path[data-slice]{transition:filter .16s ease;}
+  svg path[data-slice]:hover{filter:brightness(1.2);}
+  @keyframes navInA{0%{transform:scale(.78)}58%{transform:scale(1.035)}100%{transform:scale(1)}}
+  @keyframes navInB{0%{transform:scale(.78)}58%{transform:scale(1.035)}100%{transform:scale(1)}}
+</style>
+</helmet>
+<div style="position:fixed;inset:0;display:flex;flex-direction:column;background:radial-gradient(130% 100% at 70% -10%,#11315f 0%,#0a1f44 42%,#06122c 100%);color:#eaf1fb;font-family:'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 30px 16px;border-bottom:1px solid rgba(140,175,225,.13);flex:0 0 auto;">
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.32em;color:#7b96bf;text-transform:uppercase;">FIFA World Cup 26 &nbsp;·&nbsp; Path Explorer</div>
+      <h1 style="margin:0;font-family:'Archivo',sans-serif;font-weight:900;font-size:30px;line-height:1;letter-spacing:-.015em;text-transform:uppercase;">{{ teamName }}’s Road to the <span style="color:#FECC00;">Final</span></h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;color:#7b96bf;text-transform:uppercase;">Team</span>
+        <select value="{{ country }}" onChange="{{ onCountryChange }}" style="appearance:none;background:#13294c;color:#eaf1fb;border:1px solid rgba(140,175,225,.22);border-radius:9px;padding:9px 30px 9px 12px;font-family:'IBM Plex Sans';font-size:13px;font-weight:600;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#7b96bf 50%),linear-gradient(135deg,#7b96bf 50%,transparent 50%);background-position:calc(100% - 16px) 16px,calc(100% - 11px) 16px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;">
+          <sc-for list="{{ countryOptions }}" as="t" hint-placeholder-count="6"><option value="{{ t }}">{{ t }}</option></sc-for>
+        </select>
+      </div>
+      <div style="display:flex;background:rgba(140,175,225,.1);border:1px solid rgba(140,175,225,.18);border-radius:10px;padding:3px;gap:3px;">
+        <button onClick="{{ showTree }}" style="{{ treeBtnStyle }}">Decision tree</button>
+        <button onClick="{{ showPie }}" style="{{ pieBtnStyle }}">Pie explorer</button>
+      </div>
+      <button onClick="{{ reset }}" style="background:rgba(140,175,225,.1);color:#cfe0f5;border:1px solid rgba(140,175,225,.22);border-radius:10px;padding:9px 16px;font-family:'IBM Plex Sans';font-size:13px;font-weight:600;cursor:pointer;">Reset</button>
+    </div>
+  </div>
+
+  <div style="display:flex;flex:1 1 auto;min-height:0;">
+
+    <div style="flex:0 0 326px;border-right:1px solid rgba(140,175,225,.13);padding:22px 22px 26px;overflow-y:auto;display:flex;flex-direction:column;gap:21px;">
+
+      <div style="border:1px solid rgba(254,204,0,.28);border-radius:16px;padding:20px 20px 18px;background:linear-gradient(160deg,rgba(254,204,0,.09),rgba(255,255,255,.012));">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;color:#9fb4d6;text-transform:uppercase;margin-bottom:6px;">Sweden win the World Cup</div>
+        <div style="display:flex;align-items:baseline;gap:9px;">
+          <div style="font-family:'Archivo',sans-serif;font-weight:900;font-size:54px;line-height:.9;color:#FECC00;letter-spacing:-.02em;">{{ championPct }}</div>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:#b9c8e2;line-height:1.4;">{{ predictedLabel }}</div>
+      </div>
+
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;color:#7b96bf;text-transform:uppercase;margin-bottom:12px;">Chance to reach round</div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:11px;">
+              <div style="flex:0 0 78px;font-size:12px;color:#b9c8e2;font-weight:500;">{{ b.label }}</div>
+              <div style="flex:1 1 auto;height:11px;background:rgba(140,175,225,.1);border-radius:6px;overflow:hidden;">
+                <div style="{{ b.fillStyle }}"></div>
+              </div>
+              <div style="flex:0 0 46px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#eaf1fb;font-weight:500;">{{ b.pct }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1 1 auto;">
+        <sc-if value="{{ focusIsGroup }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.2em;color:#7b96bf;text-transform:uppercase;">Group H · before MD3</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9fb4d6;letter-spacing:.08em;">Pld&nbsp;GD&nbsp;Pts</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <sc-for list="{{ standings }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:9px;background:{{ s.bg }};border:{{ s.border }};">
+                  <div style="width:9px;height:9px;border-radius:50%;background:{{ s.color }};flex:0 0 auto;"></div>
+                  <div style="flex:1 1 auto;font-size:13px;font-weight:{{ s.weight }};color:{{ s.text }};">{{ s.name }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8ba3c7;width:14px;text-align:center;">{{ s.pld }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8ba3c7;width:24px;text-align:center;">{{ s.gd }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:{{ s.text }};width:16px;text-align:right;">{{ s.pts }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:11px;font-size:12px;color:#9fb4d6;line-height:1.5;">Final group game: <span style="color:#eaf1fb;font-weight:600;">Sweden vs Japan.</span> The result sets where Sweden lands in the bracket.</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ focusIsRound }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.2em;color:#7b96bf;text-transform:uppercase;margin-bottom:4px;">{{ focusTitle }}</div>
+            <div style="font-size:12px;color:#9fb4d6;margin-bottom:11px;">{{ focusSub }}</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <sc-for list="{{ focusOpps }}" as="o" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:9px;background:rgba(140,175,225,.05);border:1px solid rgba(140,175,225,.1);">
+                  <div style="width:10px;height:10px;border-radius:50%;background:{{ o.color }};flex:0 0 auto;"></div>
+                  <div style="flex:1 1 auto;font-size:13px;font-weight:600;color:#eaf1fb;">{{ o.name }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9fb4d6;">face {{ o.facePct }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FECC00;width:58px;text-align:right;">beat {{ o.beatPct }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;color:#7b96bf;text-transform:uppercase;margin-bottom:10px;">Path so far</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">
+          <sc-for list="{{ breadcrumb }}" as="c" hint-placeholder-count="1">
+            <button onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#9fb4d6;">{{ pathProbLabel }}</div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;">
+      <div style="padding:14px 30px 4px;flex:0 0 auto;font-size:13px;color:#9fb4d6;">{{ stageHint }}</div>
+      <div data-stagearea="1" style="flex:1 1 auto;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <div style="{{ wrapStyle }}">
+
+          <sc-if value="{{ isTree }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ animStyle }}">
+              <sc-for list="{{ treeEdges }}" as="e" hint-placeholder-count="4">
+                <div style="{{ e.style }}"></div>
+              </sc-for>
+              <sc-for list="{{ treeNodes }}" as="n" hint-placeholder-count="5">
+                <div style="display:contents">
+                  <div style="{{ n.style }}" onClick="{{ n.onClick }}" title="{{ n.title }}">
+                    <div style="font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;opacity:.85;{{ n.tagFont }}">{{ n.tag }}</div>
+                    <div style="font-weight:700;line-height:1;{{ n.nameFont }}">{{ n.name }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;opacity:.9;{{ n.pctFont }}">{{ n.pct }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPie }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ animStyle }}">
+              <sc-for list="{{ pieConnectors }}" as="e" hint-placeholder-count="1">
+                <div style="{{ e.style }}"></div>
+              </sc-for>
+              <div style="{{ pieDonutWrap }}">
+                <svg viewBox="0 0 100 100" style="width:100%;height:100%;overflow:visible;display:block;">
+                  <sc-for list="{{ pieSlices }}" as="s" hint-placeholder-count="4">
+                    <path data-slice="1" d="{{ s.d }}" onClick="{{ s.onClick }}" style="{{ s.style }}"></path>
+                  </sc-for>
+                </svg>
+                <div style="{{ pieCenterStyle }}">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#9fb4d6;text-transform:uppercase;">{{ pieCenterTag }}</div>
+                  <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;line-height:1.05;margin-top:3px;">{{ pieCenterName }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FECC00;margin-top:4px;">{{ pieCenterSub }}</div>
+                </div>
+              </div>
+              <sc-for list="{{ pieLabels }}" as="l" hint-placeholder-count="4">
+                <div style="{{ l.style }}" onClick="{{ l.onClick }}">
+                  <div style="display:flex;align-items:center;gap:7px;justify-content:{{ l.justify }};">
+                    <div style="width:9px;height:9px;border-radius:50%;background:{{ l.color }};"></div>
+                    <div style="font-size:13px;font-weight:700;color:#eaf1fb;">{{ l.name }}</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9fb4d6;margin-top:2px;">{{ l.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isOther }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+              <div style="max-width:440px;text-align:center;border:1px dashed rgba(140,175,225,.3);border-radius:18px;padding:36px 34px;background:rgba(140,175,225,.05);">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;color:#7b96bf;text-transform:uppercase;margin-bottom:10px;">Preview slot</div>
+                <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;line-height:1.1;margin-bottom:12px;">{{ teamName }}’s road to the final</div>
+                <div style="font-size:14px;color:#b9c8e2;line-height:1.55;margin-bottom:22px;">This team’s bracket gets generated from <span style="font-family:'IBM Plex Mono',monospace;color:#FECC00;">sim_results.json</span> in the build. Sweden is the live, fully-wired demo.</div>
+                <button onClick="{{ backToSweden }}" style="background:#FECC00;color:#1a1205;border:none;border-radius:11px;padding:11px 20px;font-family:'IBM Plex Sans';font-size:14px;font-weight:700;cursor:pointer;">View Sweden’s road</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ backVisible }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ onBack }}" style="{{ backStyle }}">
+              <span style="font-size:15px;line-height:1;">↑</span>{{ backLabel }}
+            </button>
+          </sc-if>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+  state = {
+    scale: 1,
+    view: 'tree',
+    country: 'Sweden',
+    navKey: 0,
+    treeRoot: [{ round:0, opp:{name:'Japan', elo:1850} }],
+    piePath:  [{ round:0, opp:{name:'Japan', elo:1850} }]
+  };
+
+  // ===== HANDOFF: branch-visibility threshold =====
+  // A child branch is shown only if its probability *given its parent* is at
+  // least this value (e.g. 0.05 = 5%). Tune in one place; tree + pie both use it.
+  PRUNE = 0.05;
+  // Pie explorer renders every outcome down to this size (tiny slivers hidden).
+  PRUNE_PIE = 0.012;
+
+  componentDidMount(){
+    this._fit = ()=>{ const el=document.querySelector('[data-stagearea]'); if(!el) return; const s=Math.min((el.clientWidth-30)/1150,(el.clientHeight-26)/540); const v=Math.max(0.42,Math.min(s,1.3)); if(Math.abs(v-this.state.scale)>0.004) this.setState({scale:v}); };
+    this._onResize = ()=>this._fit();
+    window.addEventListener('resize', this._onResize);
+    setTimeout(()=>this._fit(), 60);
+    requestAnimationFrame(()=>{ this._fit(); requestAnimationFrame(()=>this._fit()); });
+    const el=document.querySelector('[data-stagearea]');
+    if(el && window.ResizeObserver){ this._ro=new ResizeObserver(()=>this._fit()); this._ro.observe(el); }
+  }
+  componentWillUnmount(){ if(this._ro) this._ro.disconnect(); window.removeEventListener('resize', this._onResize); }
+
+  SWE = 1985;
+  JAPAN = { name:'Japan', elo:1850 };
+  ROUNDS = ['Round of 32','Round of 16','Quarter-final','Semi-final','Final'];
+  RSHORT = ['R32','R16','QF','SF','FINAL'];
+  STAND = [
+    { name:'Netherlands', pld:2, gd:'+4', pts:6 },
+    { name:'Sweden', pld:2, gd:'+1', pts:3, self:true },
+    { name:'Japan', pld:2, gd:'0', pts:3 },
+    { name:'Tunisia', pld:2, gd:'-5', pts:1 }
+  ];
+  FINISH = {
+    W:{ adv:0.98, p1:0.40, p2:0.46, p3:0.12 },
+    D:{ adv:0.88, p1:0.10, p2:0.44, p3:0.34 },
+    L:{ adv:0.62, p1:0.02, p2:0.18, p3:0.42 }
+  };
+  R32POOL = {
+    p1:[{name:'Egypt',elo:1820,p:0.42},{name:'Saudi Arabia',elo:1650,p:0.34},{name:'Ghana',elo:1745,p:0.24}],
+    p2:[{name:'Uruguay',elo:1990,p:0.40},{name:'Senegal',elo:1925,p:0.34},{name:'USA',elo:1860,p:0.26}],
+    p3:[{name:'Brazil',elo:2100,p:0.40},{name:'France',elo:2080,p:0.34},{name:'Portugal',elo:2070,p:0.26}]
+  };
+  POOLS = [
+    [{name:'Croatia',elo:1945,p:0.40},{name:'Morocco',elo:1955,p:0.34},{name:'Mexico',elo:1905,p:0.26}],
+    [{name:'England',elo:2060,p:0.42},{name:'Netherlands',elo:2025,p:0.32},{name:'Colombia',elo:1960,p:0.26}],
+    [{name:'Argentina',elo:2105,p:0.45},{name:'Germany',elo:2035,p:0.30},{name:'Belgium',elo:1980,p:0.25}],
+    [{name:'Spain',elo:2120,p:0.50},{name:'Brazil',elo:2100,p:0.30},{name:'France',elo:2080,p:0.20}]
+  ];
+  OPP = {Egypt:'#d6492f','Saudi Arabia':'#1f9d5c',Ghana:'#2aa84a',Uruguay:'#4ba3e3',Senegal:'#2faf6a',USA:'#3f63c4',Brazil:'#f4c20d',France:'#3756b0',Portugal:'#2b9a4c',Croatia:'#d63a3a',Morocco:'#c2402f',Mexico:'#2f8a52',England:'#e05656',Netherlands:'#ef8a32',Colombia:'#f0c437',Argentina:'#5aa6dd',Germany:'#9aa6bd',Belgium:'#e0b23a',Spain:'#d83b34',Japan:'#1f7fc4'};
+
+  we(dr){ return 1/(Math.pow(10,-dr/400)+1); }
+  oppColor(n){ return this.OPP[n] || '#6f86ad'; }
+  pct(p){ const v=p*100; if(v>=10) return Math.round(v)+'%'; if(v>=1) return v.toFixed(1)+'%'; return v.toFixed(2)+'%'; }
+  lighten(c){ return c; }
+
+  // ---- model ----
+  model(){
+    const SWE=this.SWE;
+    const dr=SWE-this.JAPAN.elo, W=this.we(dr);
+    let Pd=0.27*Math.exp(-Math.abs(dr)/320); let pw=W-Pd/2, pl=1-pw-Pd; const ss=pw+Pd+pl;
+    const jp={W:pw/ss,D:Pd/ss,L:pl/ss};
+    const faceR32={}, eloR32={}; let advance=0;
+    for(const j of ['W','D','L']){ const pj=jp[j], f=this.FINISH[j]; advance+=pj*f.adv;
+      for(const fk of ['p1','p2','p3']){ const pf=pj*f.adv*f[fk]; for(const o of this.R32POOL[fk]){ faceR32[o.name]=(faceR32[o.name]||0)+pf*o.p; eloR32[o.name]=o.elo; } } }
+    const r32dist=Object.keys(faceR32).map(n=>({name:n,elo:eloR32[n],p:advance>0?faceR32[n]/advance:0,color:this.oppColor(n)})).sort((a,b)=>b.p-a.p);
+    const faceDists=[r32dist];
+    for(const pool of this.POOLS){ const t=pool.reduce((s,o)=>s+o.p,0); faceDists.push(pool.map(o=>({name:o.name,elo:o.elo,p:o.p/t,color:this.oppColor(o.name)}))); }
+    const winp=faceDists.map(d=>d.reduce((s,o)=>s+o.p*this.we(SWE-o.elo),0));
+    const reach=[advance]; for(let k=0;k<5;k++) reach.push(reach[k]*winp[k]);
+    return { jp, advance, r32dist, faceDists, winp, reach, champion:reach[5] };
+  }
+
+  // children of a match-state path → [{kind,round,opp,condP}]
+  childrenOf(path, M){
+    const last=path[path.length-1];
+    if(last.round>=6) return [];
+    if(last.round===0){
+      const out=M.r32dist.map(o=>({kind:'opp',round:1,opp:{name:o.name,elo:o.elo},condP:M.advance*o.p}));
+      out.push({kind:'lose',round:99,condP:1-M.advance,label:'Out in group'});
+      return out;
+    }
+    const beat=this.we(this.SWE-last.opp.elo);
+    if(last.round===5){
+      return [{kind:'champ',round:6,condP:beat},{kind:'lose',round:99,condP:1-beat,label:'Lose final'}];
+    }
+    const pool=M.faceDists[last.round]; // opponents in next round
+    const out=pool.map(o=>({kind:'opp',round:last.round+1,opp:{name:o.name,elo:o.elo},condP:beat*o.p}));
+    out.push({kind:'lose',round:99,condP:1-beat,label:'Out in '+this.RSHORT[last.round-1]});
+    return out;
+  }
+
+  pathProb(path, M){ let p=1; for(let i=1;i<path.length;i++){ const sub=path.slice(0,i+1); const par=path.slice(0,i); const kids=this.childrenOf(par,M); const want=path[i]; const hit=kids.find(c=>c.kind==='opp'&&c.round===want.round&&c.opp.name===want.opp.name); p*= hit?hit.condP:0; } return p; }
+
+  COUNTRIES = ['Sweden','Brazil','Argentina','France','Spain','England','Netherlands','Germany','Portugal','Japan','USA'];
+  onCountryChange = (e)=> this._bump({ country:e.target.value });
+  backToSweden = ()=> this._bump({ country:'Sweden' });
+  _bump(extra){ this.setState({ navKey:this.state.navKey+1, ...extra }); }
+  showTree=()=>this._bump({view:'tree'});
+  showPie=()=>this._bump({view:'pie'});
+  reset=()=>this._bump({ treeRoot:[{round:0,opp:this.JAPAN}], piePath:[{round:0,opp:this.JAPAN}] });
+  rerootTree=(path)=>this._bump({treeRoot:path});
+  drillPie=(path)=>this._bump({piePath:path});
+
+  arcPath(a0,a1,R,r){
+    const cx=50,cy=50;
+    const pt=(a,rad)=>`${(cx+rad*Math.cos(a)).toFixed(2)} ${(cy+rad*Math.sin(a)).toFixed(2)}`;
+    if(a1-a0>=2*Math.PI-1e-3){ return `M ${pt(0,R)} A ${R} ${R} 0 1 1 ${pt(Math.PI,R)} A ${R} ${R} 0 1 1 ${pt(2*Math.PI,R)} Z M ${pt(0,r)} A ${r} ${r} 0 1 0 ${pt(Math.PI,r)} A ${r} ${r} 0 1 0 ${pt(2*Math.PI,r)} Z`; }
+    const large=(a1-a0)>Math.PI?1:0;
+    return `M ${pt(a0,R)} A ${R} ${R} 0 ${large} 1 ${pt(a1,R)} L ${pt(a1,r)} A ${r} ${r} 0 ${large} 0 ${pt(a0,r)} Z`;
+  }
+
+  nodeLabel(state){
+    if(state.round===0) return {tag:'GROUP', name:'vs Japan'};
+    if(state.round===6) return {tag:'CHAMPION', name:'★'};
+    if(state.round===99) return {tag:'OUT', name:'Eliminated'};
+    return {tag:this.RSHORT[state.round-1], name:'vs '+state.opp.name};
+  }
+
+  renderVals(){
+    const st=this.state, M=this.model();
+    const SWE=this.SWE;
+
+    // ---- left panel: bars + headline ----
+    const barData=[['Advance',M.reach[0]],['Round of 16',M.reach[1]],['Quarter-final',M.reach[2]],['Semi-final',M.reach[3]],['Final',M.reach[4]],['Champion',M.reach[5]]];
+    const bars=barData.map(([label,p])=>({label,pct:this.pct(p),fillStyle:{width:Math.max(p*100,1.5)+'%',height:'100%',background:'linear-gradient(90deg,#1f7fc4,#3f9bdc)',borderRadius:'6px',transition:'width .6s cubic-bezier(.34,1.3,.5,1)'}}));
+    let predictedLabel; { let ex=-1; for(let k=0;k<5;k++){ if(M.winp[k]<0.5){ex=k;break;} } predictedLabel = M.advance<0.5? 'Most likely: out in the group stage' : (ex<0? 'Most likely: Sweden lift the trophy' : 'Most likely finish: out in the '+this.ROUNDS[ex]); }
+
+    const isOther = st.country!=='Sweden';
+
+    // ---- active state (depends on view) ----
+    const activePath = st.view==='tree'? st.treeRoot : st.piePath;
+    const activeLast = activePath[activePath.length-1];
+    const focusRound = activeLast.round;
+
+    // ---- prominent back button (sits above the current parent node) ----
+    let backVisible=false, backStyle={display:'none'}, backLabel='', onBack=()=>{};
+    if(!isOther && activePath.length>1){
+      const parent = activePath[activePath.length-2];
+      const pl = parent.round===0?'Japan': parent.round===6?'Champions':parent.opp.name;
+      backLabel = ' Back to '+pl;
+      onBack = st.view==='tree'? (()=>this.rerootTree(st.treeRoot.slice(0,-1))) : (()=>this.drillPie(st.piePath.slice(0,-1)));
+    }
+
+    // focus panel
+    const standings=this.STAND.map(t=>({name:t.name,pld:t.pld,gd:t.gd,pts:t.pts,color:t.self?'#FECC00':this.oppColor(t.name),weight:t.self?'700':'500',text:t.self?'#FECC00':'#cfe0f5',bg:t.self?'rgba(254,204,0,.08)':'rgba(140,175,225,.04)',border:t.self?'1px solid rgba(254,204,0,.3)':'1px solid rgba(140,175,225,.09)'}));
+    let focusIsGroup=true, focusIsRound=false, focusTitle='', focusSub='', focusOpps=[];
+    if(focusRound>=1 && focusRound<=5){
+      focusIsGroup=false; focusIsRound=true;
+      focusTitle=this.ROUNDS[focusRound-1]+' · possible opponents';
+      focusSub='Who Sweden could face at this stage.';
+      focusOpps=M.faceDists[focusRound-1].map(o=>({name:o.name,color:o.color,facePct:this.pct(o.p),beatPct:this.pct(this.we(SWE-o.elo))}));
+    } else if(focusRound===6){
+      focusIsGroup=false; focusIsRound=true; focusTitle='Champions of the world'; focusSub='Sweden have won the World Cup in this scenario.'; focusOpps=[];
+    }
+
+    // breadcrumb (active path)
+    const setActive = st.view==='tree'? this.rerootTree : this.drillPie;
+    const breadcrumb = activePath.map((s,i)=>{
+      const lab = s.round===0?'Japan': s.round===6?'★ Champions': s.opp.name;
+      return { label:(i>0?'→ ':'')+lab, onClick:()=>setActive(activePath.slice(0,i+1)),
+        style:{ background: i===activePath.length-1?'rgba(254,204,0,.16)':'rgba(140,175,225,.08)', border:'1px solid '+(i===activePath.length-1?'rgba(254,204,0,.4)':'rgba(140,175,225,.16)'), color:i===activePath.length-1?'#FECC00':'#cfe0f5', borderRadius:'18px', padding:'5px 11px', fontSize:'12px', fontWeight:'600', cursor:'pointer', fontFamily:"'IBM Plex Sans'" } };
+    });
+    const pathProbLabel = activePath.length>1? ('Probability of this exact run so far: '+this.pct(this.pathProb(activePath,M))) : 'Exploring from kickoff — click a node to drill in.';
+
+    // ================= TREE VIEW =================
+    const treeNodes=[], treeEdges=[];
+    if(st.view==='tree'){
+      const MAXD=2, X0=100, COLW=475, H=540;
+      let leafCount=0; const flat=[];
+      const rec=(path, cond, depth)=>{
+        const node={ idx:flat.length, depth, cond, path, last:path[path.length-1], terminal:false, kids:[] };
+        flat.push(node);
+        if(depth<MAXD && node.last.round<6){
+          const cs=this.childrenOf(path,M).filter(c=>c.kind!=='lose'&&c.condP>=this.PRUNE).sort((a,b)=>b.condP-a.condP).slice(0,3);
+          for(const c of cs){
+            const cp = c.kind==='champ'? path.concat([{round:6,opp:null}]) : path.concat([{round:c.round,opp:c.opp}]);
+            const ch=rec(cp, cond*c.condP, depth+1);
+            treeEdges.push({from:node.idx,to:ch.idx,prob:cond*c.condP,on:true}); node.kids.push(ch);
+          }
+        }
+        if(node.kids.length===0){ node.y=leafCount++; } else { node.y=node.kids.reduce((s,k)=>s+k.y,0)/node.kids.length; }
+        return node;
+      };
+      const root=rec(st.treeRoot, 1, 0);
+      const rowH=Math.max(56, Math.min(150, (H-70)/Math.max(leafCount,1)));
+      const yTop=(H - rowH*Math.max(leafCount,1))/2 + rowH/2;
+      const pos=flat.map(n=>({ x:X0+n.depth*COLW, y:yTop+n.y*rowH }));
+      if(!isOther && st.treeRoot.length>1){ const rr=62, rx=pos[0].x, ry=pos[0].y;
+        backVisible=true; backStyle={ position:'absolute', left:rx+'px', top:(ry-rr-46)+'px', marginLeft:'-84px', width:'168px', height:'40px', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', background:'#FECC00', color:'#1a1205', border:'none', borderRadius:'21px', fontFamily:"'IBM Plex Sans'", fontSize:'13px', fontWeight:'700', cursor:'pointer', boxShadow:'0 8px 20px -5px rgba(0,0,0,.55)', zIndex:40 }; }
+      // edges
+      for(const e of treeEdges){ const a=pos[e.from], b=pos[e.to]; const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy), ang=Math.atan2(dy,dx)*180/Math.PI; const w=Math.max(1.5, 1.5+9*Math.sqrt(e.prob)); e.style={ position:'absolute', left:a.x+'px', top:a.y+'px', width:len+'px', height:w+'px', marginTop:(-w/2)+'px', transformOrigin:'0 50%', transform:`rotate(${ang}deg)`, background:e.on?'rgba(120,165,220,.5)':'rgba(200,90,100,.4)', borderRadius:w+'px', transition:'all .4s ease', zIndex:1 }; }
+      // nodes
+      for(let i=0;i<flat.length;i++){
+        const n=flat[i], p=pos[i];
+        if(n.terminal){
+          const r=Math.max(13, 11+26*Math.sqrt(n.cond));
+          const gold=n.kind==='champ';
+          treeNodes.push({ style:{ position:'absolute', left:p.x+'px', top:p.y+'px', width:(r*2)+'px', height:(r*2)+'px', marginLeft:(-r)+'px', marginTop:(-r)+'px', borderRadius:'50%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', cursor:'default', background: gold?'radial-gradient(circle at 38% 30%,#fff3c0,#FECC00 62%,#f0a52a)':'rgba(150,60,70,.32)', color: gold?'#3a2a00':'#f0c9cf', border: gold?'2px solid rgba(255,255,255,.5)':'1px solid rgba(200,90,100,.45)', boxShadow: gold?'0 0 26px rgba(254,204,0,.5)':'none', transition:'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex:3 },
+            tag: gold?'★':'OUT', name: gold?'Champions':(n.label||'Out'), pct:this.pct(n.cond), onClick:()=>{}, title: gold?'World Cup won':'Eliminated',
+            tagFont:'font-size:'+(gold?12:8)+'px;', nameFont:'font-size:'+(gold?0:9)+'px;margin-top:1px;'+(gold?'display:none;':''), pctFont:'font-size:11px;margin-top:2px;' });
+        } else {
+          const r=Math.max(20, 18+44*Math.sqrt(n.cond));
+          const lab=this.nodeLabel(n.last);
+          const col=n.last.round===0? '#1f7fc4' : n.last.round===6? '#FECC00' : this.oppColor(n.last.opp.name);
+          const isRoot=n.depth===0;
+          const fs=Math.max(10, r*0.26);
+          treeNodes.push({ style:{ position:'absolute', left:p.x+'px', top:p.y+'px', width:(r*2)+'px', height:(r*2)+'px', marginLeft:(-r)+'px', marginTop:(-r)+'px', borderRadius:'50%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', cursor: (n.depth>0)?'pointer':'default', background:`radial-gradient(circle at 38% 30%, rgba(255,255,255,.34), ${col} 72%)`, color:'#fff', border: isRoot?'2.5px solid #FECC00':'1px solid rgba(255,255,255,.2)', boxShadow: isRoot?'0 0 24px rgba(254,204,0,.4)':`0 10px 26px -10px ${col}`, transition:'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex: isRoot?5:3, userSelect:'none' },
+            tag:lab.tag, name:lab.name, pct:this.pct(n.cond), onClick: n.depth>0? (()=>this.rerootTree(n.path)) : (()=>{}), title: n.depth>0?'Click to focus this scenario':'Current root',
+            tagFont:'font-size:'+Math.max(8,fs*0.62)+'px;', nameFont:'font-size:'+fs+'px;margin-top:1px;', pctFont:'font-size:'+Math.max(9,fs*0.74)+'px;margin-top:2px;' });
+        }
+      }
+    }
+
+    // ================= PIE VIEW =================
+    let pieSlices=[], pieLabels=[], pieConnectors=[], pieCenterTag='', pieCenterName='', pieCenterSub='', pieDonutWrap={display:'none'}, pieCenterStyle={display:'none'};
+    if(st.view==='pie'){
+      const cx=575, cy=270, D=300, Rpx=D/2;
+      if(!isOther && st.piePath.length>1){ backVisible=true; backStyle={ position:'absolute', left:cx+'px', top:(cy-Rpx-50)+'px', marginLeft:'-84px', width:'168px', height:'40px', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', background:'#FECC00', color:'#1a1205', border:'none', borderRadius:'21px', fontFamily:"'IBM Plex Sans'", fontSize:'13px', fontWeight:'700', cursor:'pointer', boxShadow:'0 8px 20px -5px rgba(0,0,0,.55)', zIndex:40 }; }
+      const last=activeLast;
+      const lab=this.nodeLabel(last);
+      pieCenterTag = last.round===0?'Final group game': last.round===6?'World Cup': this.ROUNDS[last.round-1];
+      pieCenterName = last.round===0?'vs Japan': last.round===6?'Champions ★': 'vs '+last.opp.name;
+      if(last.round===6){ pieCenterSub='Sweden are world champions'; }
+      else if(last.round!==99){ const beat=last.round===0? M.advance : this.we(SWE-last.opp.elo); pieCenterSub=(last.round===0?'Advance ':'Win ')+this.pct(beat); }
+      pieDonutWrap={ position:'absolute', left:(cx-Rpx)+'px', top:(cy-Rpx)+'px', width:D+'px', height:D+'px', transition:'all .4s ease' };
+      pieCenterStyle={ position:'absolute', inset:'0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', pointerEvents:'none', padding:'0 18px' };
+
+      if(last.round<6){
+        const kids=this.childrenOf(activePath,M).filter(c=>c.condP>=this.PRUNE_PIE);
+        let a0=-Math.PI/2;
+        for(const c of kids){
+          const a1=a0+2*Math.PI*c.condP;
+          const mid=(a0+a1)/2;
+          const isOpp=c.kind==='opp'||c.kind==='champ';
+          const col= c.kind==='champ'? '#FECC00' : c.kind==='lose'? '#7c3a44' : this.oppColor(c.opp.name);
+          const big = c.condP>=0.5;
+          pieSlices.push({ d:this.arcPath(a0,a1,46,27), style:{ fill:col, stroke:'#06122c', strokeWidth:'1.4px', strokeLinejoin:'round', cursor:isOpp?'pointer':'default', opacity:isOpp?0.95:0.7 }, onClick: isOpp? (()=>{ if(c.kind==='champ') this.drillPie(activePath.concat([{round:6,opp:null}])); else this.drillPie(activePath.concat([{round:c.round,opp:c.opp}])); }) : (()=>{}) });
+          // label
+          const lr=Rpx+58; const lx=cx+lr*Math.cos(mid), ly=cy+lr*Math.sin(mid);
+          const rightSide=Math.cos(mid)>=0;
+          const nm = c.kind==='champ'?'Champions ★': c.kind==='lose'? (c.label||'Eliminated') : c.opp.name;
+          const sub = (c.kind==='opp'?'face '+this.pct(c.condP)+' · beat '+this.pct(this.we(SWE-c.opp.elo)) : this.pct(c.condP));
+          pieLabels.push({ style:{ position:'absolute', left:lx+'px', top:ly+'px', transform:`translate(${rightSide?'0':'-100%'}, -50%)`, width:'150px', textAlign:rightSide?'left':'right', cursor:isOpp?'pointer':'default' }, justify: rightSide?'flex-start':'flex-end', color:col, name:nm, sub, onClick: isOpp? (()=>{ if(c.kind==='champ') this.drillPie(activePath.concat([{round:6,opp:null}])); else this.drillPie(activePath.concat([{round:c.round,opp:c.opp}])); }) : (()=>{}) });
+          a0=a1;
+        }
+      } else {
+        // champion final node
+        pieSlices.push({ d:this.arcPath(-Math.PI/2, 1.5*Math.PI, 46, 27), style:{ fill:'#FECC00', stroke:'#06122c', strokeWidth:'1.4px', cursor:'default', fillRule:'evenodd' }, onClick:()=>{} });
+      }
+    }
+
+    // ---- toggle button styles ----
+    const seg=(on)=>({ background:on?'#FECC00':'transparent', color:on?'#1a1205':'#cfe0f5', border:'none', borderRadius:'8px', padding:'7px 15px', fontFamily:"'IBM Plex Sans'", fontSize:'13px', fontWeight:'700', cursor:'pointer', transition:'all .2s' });
+
+    return {
+      championPct:this.pct(M.champion), predictedLabel, bars,
+      standings, focusIsGroup, focusIsRound, focusTitle, focusSub, focusOpps,
+      breadcrumb, pathProbLabel,
+      reset:this.reset, showTree:this.showTree, showPie:this.showPie,
+      teamName: st.country, country: st.country, countryOptions:this.COUNTRIES, onCountryChange:this.onCountryChange, backToSweden:this.backToSweden,
+      isOther, backVisible, backStyle, backLabel, onBack,
+      treeBtnStyle:seg(st.view==='tree'), pieBtnStyle:seg(st.view==='pie'),
+      isTree: st.view==='tree' && !isOther, isPie: st.view==='pie' && !isOther,
+      stageHint: st.view==='tree' ? 'Each branch is a possible opponent · size = probability · branches under 5% are hidden · click a node to make it the root' : 'The pie shows how this match resolves · click a team slice to follow that path into the next round',
+      wrapStyle:{ position:'relative', width:'1150px', height:'540px', flex:'0 0 auto', zoom: st.scale },
+      animStyle:{ position:'absolute', inset:'0', animation:(st.navKey%2===0?'navInA':'navInB')+' .46s cubic-bezier(.2,.72,.3,1)', transformOrigin: st.view==='tree'?'13% 50%':'50% 50%', willChange:'transform,opacity' },
+      treeNodes, treeEdges,
+      pieSlices, pieLabels, pieConnectors, pieDonutWrap, pieCenterStyle, pieCenterTag, pieCenterName, pieCenterSub
+    };
+  }
+}
+</script>
+</body>
+</html>

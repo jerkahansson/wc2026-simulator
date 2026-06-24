@@ -1,0 +1,839 @@
+"""Build the production "Road to the Final" WC2026 path-explorer site.
+
+Reads sim_results.json (the Monte-Carlo output emitted by simulate.py) and emits a
+single self-contained index.html: plain HTML + CSS + one vanilla-JS module. The full
+DATA object is inlined into a <script> tag so the page has no external runtime
+dependency (the .dc prototype's support.js / <x-dc> / DCLogic system is NOT used).
+
+The visualization design, math, layout, animations and tunable constants are ported
+faithfully from _ref/prototype.dc.html. The one structural change vs the prototype is
+the data source: instead of an in-browser Elo->Poisson mock, every team's real
+simulate.py output drives the views (see the JS model()/childrenOf() below).
+
+Usage:
+    cd C:\\Users\\erika\\projects\\wc2026-simulator
+    python build_site.py
+"""
+
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, "sim_results.json")
+OUT = os.path.join(HERE, "index.html")
+
+
+def main():
+    with open(SRC, encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    # Inline the JSON verbatim. ensure_ascii=False keeps team names like "Curacao"
+    # readable; </script> is escaped so the literal can't break out of the tag.
+    data_json = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+
+    html = PAGE_TEMPLATE.replace("__DATA_JSON__", data_json)
+
+    with open(OUT, "w", encoding="utf-8") as fh:
+        fh.write(html)
+
+    n_teams = len(data.get("teams", {}))
+    print(f"Wrote {OUT} ({len(html):,} bytes, {n_teams} teams).")
+
+
+# ---------------------------------------------------------------------------
+# The page template. __DATA_JSON__ is substituted with the inlined sim_results.
+# Everything below the inlined DATA is a vanilla-JS port of the prototype's
+# class Component (model / childrenOf / pathProb / arcPath / nodeLabel / the two
+# views / left panel / breadcrumb / back button / zoom animation / fit scaling).
+# ---------------------------------------------------------------------------
+PAGE_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Road to the Final — WC2026 Path Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#06122c;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:rgba(140,175,225,.22);border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  svg path[data-slice]{transition:filter .16s ease;}
+  svg path[data-slice]:hover{filter:brightness(1.2);}
+  @keyframes navInA{0%{transform:scale(.78)}58%{transform:scale(1.035)}100%{transform:scale(1)}}
+  @keyframes navInB{0%{transform:scale(.78)}58%{transform:scale(1.035)}100%{transform:scale(1)}}
+
+  /* ---- layout shell (ported from the prototype's inline styles) ---- */
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;
+    background:radial-gradient(130% 100% at 70% -10%,#11315f 0%,#0a1f44 42%,#06122c 100%);
+    color:#eaf1fb;font-family:'IBM Plex Sans',system-ui,sans-serif;overflow:hidden;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:18px 30px 16px;border-bottom:1px solid rgba(140,175,225,.13);flex:0 0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.32em;
+    color:#7b96bf;text-transform:uppercase;}
+  h1.title{margin:0;font-family:'Archivo',sans-serif;font-weight:900;font-size:30px;
+    line-height:1;letter-spacing:-.015em;text-transform:uppercase;}
+  h1.title .final{color:#FECC00;}
+
+  .team-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;
+    color:#7b96bf;text-transform:uppercase;}
+  select.team-select{appearance:none;background:#13294c;color:#eaf1fb;
+    border:1px solid rgba(140,175,225,.22);border-radius:9px;padding:9px 30px 9px 12px;
+    font-family:'IBM Plex Sans';font-size:13px;font-weight:600;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,#7b96bf 50%),linear-gradient(135deg,#7b96bf 50%,transparent 50%);
+    background-position:calc(100% - 16px) 16px,calc(100% - 11px) 16px;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+
+  .seg-group{display:flex;background:rgba(140,175,225,.1);border:1px solid rgba(140,175,225,.18);
+    border-radius:10px;padding:3px;gap:3px;}
+  .reset-btn{background:rgba(140,175,225,.1);color:#cfe0f5;border:1px solid rgba(140,175,225,.22);
+    border-radius:10px;padding:9px 16px;font-family:'IBM Plex Sans';font-size:13px;font-weight:600;cursor:pointer;}
+
+  .body{display:flex;flex:1 1 auto;min-height:0;}
+  .leftpanel{flex:0 0 326px;border-right:1px solid rgba(140,175,225,.13);
+    padding:22px 22px 26px;overflow-y:auto;display:flex;flex-direction:column;gap:21px;}
+
+  .headline-card{border:1px solid rgba(254,204,0,.28);border-radius:16px;padding:20px 20px 18px;
+    background:linear-gradient(160deg,rgba(254,204,0,.09),rgba(255,255,255,.012));}
+  .headline-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;
+    color:#9fb4d6;text-transform:uppercase;margin-bottom:6px;}
+  .headline-pct{font-family:'Archivo',sans-serif;font-weight:900;font-size:54px;line-height:.9;
+    color:#FECC00;letter-spacing:-.02em;}
+  .headline-sub{margin-top:10px;font-size:13px;color:#b9c8e2;line-height:1.4;}
+
+  .section-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;
+    color:#7b96bf;text-transform:uppercase;}
+
+  .bar-row{display:flex;align-items:center;gap:11px;}
+  .bar-label{flex:0 0 78px;font-size:12px;color:#b9c8e2;font-weight:500;}
+  .bar-track{flex:1 1 auto;height:11px;background:rgba(140,175,225,.1);border-radius:6px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,#1f7fc4,#3f9bdc);border-radius:6px;
+    transition:width .6s cubic-bezier(.34,1.3,.5,1);}
+  .bar-pct{flex:0 0 46px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    color:#eaf1fb;font-weight:500;}
+
+  .stage-hint{padding:14px 30px 4px;flex:0 0 auto;font-size:13px;color:#9fb4d6;}
+  .stagearea{flex:1 1 auto;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+  .crumb{border-radius:18px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:'IBM Plex Sans';}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Inlined Monte-Carlo output. No external fetch / runtime. -->
+<script>const DATA = __DATA_JSON__;</script>
+
+<script>
+"use strict";
+(function () {
+
+  // ===================== TUNABLE CONSTANTS (ported verbatim) =====================
+  // A child branch is shown only if its probability *given its parent* is >= PRUNE.
+  const PRUNE = 0.05;        // decision-tree display threshold (5%)
+  const PRUNE_PIE = 0.012;   // pie explorer hides slices smaller than this
+  const MAXD = 2;            // generations shown before clicking deeper
+  const TOPN = 3;            // top-N opponents per tree node
+
+  // ===================== team colors =====================
+  // Names must match the data keys. Fallback #6f86ad for anything unmapped.
+  const OPP = {
+    Japan:'#1f7fc4', Egypt:'#d6492f', 'Saudi Arabia':'#1f9d5c', Ghana:'#2aa84a',
+    Uruguay:'#4ba3e3', Senegal:'#2faf6a', USA:'#3f63c4', Brazil:'#f4c20d',
+    France:'#3756b0', Portugal:'#2b9a4c', Croatia:'#d63a3a', Morocco:'#c2402f',
+    Mexico:'#2f8a52', England:'#e05656', Netherlands:'#ef8a32', Colombia:'#f0c437',
+    Argentina:'#5aa6dd', Germany:'#9aa6bd', Belgium:'#e0b23a', Spain:'#d83b34',
+    // extended to cover the remaining qualified teams in the dataset
+    Sweden:'#1f7fc4', Norway:'#c8102e', Australia:'#f1c40f', Canada:'#d52b1e',
+    Paraguay:'#d2122e', Switzerland:'#d52b1e', Austria:'#d81e3f',
+    'Czech Republic':'#11457e', Turkey:'#e30a17', Scotland:'#0b4ea2', Iran:'#239f40',
+    Iraq:'#cf142b', Jordan:'#007a3d', Qatar:'#8a1538', 'South Korea':'#0047a0',
+    'South Africa':'#007a4d', Tunisia:'#e70013', Algeria:'#2a8a43', 'Ivory Coast':'#f77f00',
+    'Cape Verde':'#1c5fae', 'D.R. Congo':'#27a9e0', Curacao:'#0b3d91', Haiti:'#00209f',
+    Panama:'#c8102e', Ecuador:'#ffd100', 'Bosnia & Herzegovina':'#1f3a93',
+    'New Zealand':'#7b8794', Uzbekistan:'#1eb53a'
+  };
+  function oppColor(n) { return OPP[n] || '#6f86ad'; }
+
+  // ===================== labels / formatting =====================
+  const ROUNDS = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
+  const RSHORT = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
+
+  function pct(p) {
+    const v = p * 100;
+    if (v >= 10) return Math.round(v) + '%';
+    if (v >= 1) return v.toFixed(1) + '%';
+    return v.toFixed(2) + '%';
+  }
+
+  // ===================== state =====================
+  const teamNames = Object.keys(DATA.teams).sort();
+  const state = {
+    scale: 1,
+    view: 'tree',
+    country: DATA.teams.Sweden ? 'Sweden' : teamNames[0],
+    navKey: 0,
+    treeRoot: null,   // set by resetPaths()
+    piePath: null
+  };
+
+  // ===================== model() — swap the data source =====================
+  // Returns the per-team derived structure the views consume. Mirrors the
+  // prototype's model() output shape ({advance, reach, faceDists, ...}) but the
+  // numbers come straight from the selected team's simulate.py record.
+  function model() {
+    const team = DATA.teams[state.country];
+    const reachObj = team.reach;
+    // reach[] index: 0=advance,1=r16,2=qf,3=sf,4=final,5=champion
+    const reach = [reachObj.advance, reachObj.r16, reachObj.qf, reachObj.sf, reachObj.final, reachObj.champion];
+
+    // faceDists[r] for r=0..4 (R32..Final): the opponents at that round.
+    // p = faceProb (conditional on reaching that round), already sorted desc.
+    const faceDists = team.rounds.map(rd =>
+      rd.opponents.map(o => ({
+        name: o.name, elo: o.elo, p: o.faceProb, beatProb: o.beatProb, color: oppColor(o.name)
+      }))
+    );
+
+    // Lookup roundName -> {oppName -> {beatProb, elo}} to resolve "beat" quickly.
+    const beatLookup = {};
+    team.rounds.forEach((rd, i) => {
+      const m = {};
+      rd.opponents.forEach(o => { m[o.name] = { beatProb: o.beatProb, elo: o.elo }; });
+      beatLookup[i] = m; // keyed by round index 0..4
+    });
+
+    return {
+      team,
+      advance: reachObj.advance,
+      reach,
+      faceDists,
+      beatLookup,
+      champion: reachObj.champion,
+      remainingOpponent: team.groupBlock ? team.groupBlock.remainingOpponent : null,
+      // When the group stage is over (remainingOpponent == null) we root the
+      // tree/pie at the first knockout round instead of a group decider.
+      hasGroupDecider: !!(team.groupBlock && team.groupBlock.remainingOpponent)
+    };
+  }
+
+  // Resolve the beatProb for the opponent we just beat to reach the current node.
+  // round index is the round in which that opponent was faced (0..4).
+  function beatOf(M, roundIdx, oppName) {
+    const m = M.beatLookup[roundIdx];
+    if (m && m[oppName] && typeof m[oppName].beatProb === 'number') return m[oppName].beatProb;
+    return 0; // unknown opponent in a noisy deep round -> treat as already terminal
+  }
+
+  // ===================== childrenOf(path) — real numbers =====================
+  // path is an array of {round, opp:{name,elo}|null}. round encoding:
+  //   0=group decider, 1=R32, 2=R16, 3=QF, 4=SF, 5=Final, 6=champion, 99=eliminated.
+  // Returns [{kind:'opp'|'lose'|'champ', round, opp?, condP, label?}].
+  function childrenOf(path, M) {
+    const last = path[path.length - 1];
+    if (last.round >= 6) return [];
+
+    if (last.round === 0) {
+      // Group decider: children = each R32 opponent, condP = advance * faceProb.
+      const out = M.faceDists[0].map(o => ({
+        kind: 'opp', round: 1, opp: { name: o.name, elo: o.elo }, condP: M.advance * o.p
+      }));
+      out.push({ kind: 'lose', round: 99, condP: 1 - M.advance, label: 'Out in group' });
+      return out;
+    }
+
+    // last.round in 1..5: we have REACHED round `last.round`, facing last.opp.
+    // beat = our win prob vs last.opp, looked up in that round's distribution.
+    const beat = beatOf(M, last.round - 1, last.opp ? last.opp.name : null);
+
+    if (last.round === 5) {
+      // Final: win => champion, else lose.
+      return [
+        { kind: 'champ', round: 6, condP: beat },
+        { kind: 'lose', round: 99, condP: 1 - beat, label: 'Lose final' }
+      ];
+    }
+
+    // Rounds 1..4: children are next round's opponents (marginal approximation:
+    // reuse that round's marginal opponent distribution regardless of who we beat).
+    const pool = M.faceDists[last.round]; // opponents in the NEXT round
+    const out = pool.map(o => ({
+      kind: 'opp', round: last.round + 1, opp: { name: o.name, elo: o.elo }, condP: beat * o.p
+    }));
+    out.push({ kind: 'lose', round: 99, condP: 1 - beat, label: 'Out in ' + RSHORT[last.round - 1] });
+    return out;
+  }
+
+  // Probability of an exact traced run (product of conditional probs along path).
+  function pathProb(path, M) {
+    let p = 1;
+    for (let i = 1; i < path.length; i++) {
+      const par = path.slice(0, i);
+      const kids = childrenOf(par, M);
+      const want = path[i];
+      let hit;
+      if (want.round === 6) hit = kids.find(c => c.kind === 'champ');
+      else hit = kids.find(c => c.kind === 'opp' && c.round === want.round && c.opp.name === want.opp.name);
+      p *= hit ? hit.condP : 0;
+    }
+    return p;
+  }
+
+  // ===================== arcPath / nodeLabel (ported verbatim) =====================
+  function arcPath(a0, a1, R, r) {
+    const cx = 50, cy = 50;
+    const pt = (a, rad) => `${(cx + rad * Math.cos(a)).toFixed(2)} ${(cy + rad * Math.sin(a)).toFixed(2)}`;
+    if (a1 - a0 >= 2 * Math.PI - 1e-3) {
+      return `M ${pt(0, R)} A ${R} ${R} 0 1 1 ${pt(Math.PI, R)} A ${R} ${R} 0 1 1 ${pt(2 * Math.PI, R)} Z ` +
+             `M ${pt(0, r)} A ${r} ${r} 0 1 0 ${pt(Math.PI, r)} A ${r} ${r} 0 1 0 ${pt(2 * Math.PI, r)} Z`;
+    }
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    return `M ${pt(a0, R)} A ${R} ${R} 0 ${large} 1 ${pt(a1, R)} L ${pt(a1, r)} A ${r} ${r} 0 ${large} 0 ${pt(a0, r)} Z`;
+  }
+
+  function nodeLabel(node, M) {
+    if (node.round === 0) return { tag: 'GROUP', name: 'vs ' + (M.remainingOpponent || '?') };
+    if (node.round === 6) return { tag: 'CHAMPION', name: '★' };
+    if (node.round === 99) return { tag: 'OUT', name: 'Eliminated' };
+    return { tag: RSHORT[node.round - 1], name: 'vs ' + node.opp.name };
+  }
+
+  // The root state for a fresh path: group decider if one remains, else first
+  // knockout round ("Knockouts").  round:0 = group; round:-1 = knockout root.
+  function rootState(M) {
+    if (M.hasGroupDecider) return { round: 0, opp: { name: M.remainingOpponent, elo: null } };
+    return { round: -1, opp: null }; // synthetic "Knockouts" root
+  }
+
+  // childrenOf handles round 0; this wrapper also handles the knockout root (-1):
+  // children = R32 opponents scaled by advance (same as a group decider, no 'lose').
+  function childrenOfRoot(path, M) {
+    const last = path[path.length - 1];
+    if (last.round === -1) {
+      return M.faceDists[0].map(o => ({
+        kind: 'opp', round: 1, opp: { name: o.name, elo: o.elo }, condP: M.advance * o.p
+      }));
+    }
+    return childrenOf(path, M);
+  }
+
+  function resetPaths() {
+    const M = model();
+    const r = rootState(M);
+    state.treeRoot = [r];
+    state.piePath = [r];
+  }
+
+  // ===================== navigation =====================
+  function bump(extra) {
+    if (extra) Object.assign(state, extra);
+    state.navKey += 1;
+    render();
+  }
+  function onCountryChange(v) { state.country = v; resetPaths(); bump(); }
+  function showTree() { bump({ view: 'tree' }); }
+  function showPie() { bump({ view: 'pie' }); }
+  function reset() { resetPaths(); bump(); }
+  function rerootTree(path) { bump({ treeRoot: path }); }
+  function drillPie(path) { bump({ piePath: path }); }
+
+  // ===================== small DOM helpers =====================
+  function el(tag, attrs, children) {
+    const e = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === 'style' && typeof attrs[k] === 'object') Object.assign(e.style, attrs[k]);
+        else if (k === 'text') e.textContent = attrs[k];
+        else if (k === 'html') e.innerHTML = attrs[k];
+        else if (k.slice(0, 2) === 'on' && typeof attrs[k] === 'function') e.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+      }
+    }
+    (children || []).forEach(c => { if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+  // ===================== render =====================
+  const app = document.getElementById('app');
+
+  function render() {
+    const M = model();
+    const st = state;
+    clear(app);
+
+    // ---------- header ----------
+    const titleWrap = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '5px' } }, [
+      el('div', { class: 'eyebrow', text: 'FIFA World Cup 26  ·  Path Explorer' }),
+      (function () {
+        const h = el('h1', { class: 'title' });
+        h.appendChild(document.createTextNode(st.country.toUpperCase() + '’S ROAD TO THE '));
+        h.appendChild(el('span', { class: 'final', text: 'FINAL' }));
+        return h;
+      })()
+    ]);
+
+    const selectEl = el('select', { class: 'team-select', onchange: function (e) { onCountryChange(e.target.value); } },
+      teamNames.map(t => el('option', { value: t, text: t, selected: t === st.country ? 'selected' : null })));
+
+    const seg = (label, on, handler) => el('button', {
+      onclick: handler,
+      style: {
+        background: on ? '#FECC00' : 'transparent', color: on ? '#1a1205' : '#cfe0f5',
+        border: 'none', borderRadius: '8px', padding: '7px 15px',
+        fontFamily: "'IBM Plex Sans'", fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all .2s'
+      }, text: label
+    });
+
+    const controls = el('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } }, [
+      el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
+        el('span', { class: 'team-label', text: 'Team' }), selectEl
+      ]),
+      el('div', { class: 'seg-group' }, [
+        seg('Decision tree', st.view === 'tree', showTree),
+        seg('Pie explorer', st.view === 'pie', showPie)
+      ]),
+      el('button', { class: 'reset-btn', onclick: reset, text: 'Reset' })
+    ]);
+
+    app.appendChild(el('div', { class: 'topbar' }, [titleWrap, controls]));
+
+    // ---------- body ----------
+    const body = el('div', { class: 'body' });
+    app.appendChild(body);
+
+    // active path depends on view
+    const activePath = st.view === 'tree' ? st.treeRoot : st.piePath;
+    const activeLast = activePath[activePath.length - 1];
+    const focusRound = activeLast.round;
+
+    body.appendChild(buildLeftPanel(M, activePath, focusRound));
+
+    // ---------- stage ----------
+    const stageHint = st.view === 'tree'
+      ? 'Each branch is a possible opponent · size = probability · branches under 5% are hidden · click a node to make it the root'
+      : 'The pie shows how this match resolves · click a team slice to follow that path into the next round';
+
+    const stageArea = el('div', { 'data-stagearea': '1', class: 'stagearea' });
+    const wrap = el('div', { style: { position: 'relative', width: '1150px', height: '540px', flex: '0 0 auto', zoom: st.scale } });
+    const anim = el('div', {
+      style: {
+        position: 'absolute', inset: '0',
+        animation: (st.navKey % 2 === 0 ? 'navInA' : 'navInB') + ' .46s cubic-bezier(.2,.72,.3,1)',
+        transformOrigin: st.view === 'tree' ? '13% 50%' : '50% 50%', willChange: 'transform'
+      }
+    });
+    wrap.appendChild(anim);
+    stageArea.appendChild(wrap);
+
+    if (st.view === 'tree') buildTree(anim, wrap, M, st);
+    else buildPie(anim, wrap, M, st, activePath, activeLast);
+
+    const right = el('div', { style: { flex: '1 1 auto', minWidth: '0', display: 'flex', flexDirection: 'column' } }, [
+      el('div', { class: 'stage-hint', text: stageHint }),
+      stageArea
+    ]);
+    body.appendChild(right);
+
+    requestAnimationFrame(fit);
+  }
+
+  // ---------- LEFT PANEL ----------
+  function buildLeftPanel(M, activePath, focusRound) {
+    const st = state;
+    const team = M.team;
+
+    // headline card
+    let predictedLabel;
+    const finish = team.predictedFinish;
+    if (finish === 'Group stage') predictedLabel = 'Most likely: out in the group stage';
+    else if (finish === 'Champion') predictedLabel = 'Most likely: ' + st.country + ' lift the trophy';
+    else predictedLabel = 'Most likely finish: ' + finish;
+
+    const headline = el('div', { class: 'headline-card' }, [
+      el('div', { class: 'headline-eyebrow', text: st.country + ' win the World Cup' }),
+      el('div', { style: { display: 'flex', alignItems: 'baseline', gap: '9px' } }, [
+        el('div', { class: 'headline-pct', text: pct(M.champion) })
+      ]),
+      el('div', { class: 'headline-sub', text: predictedLabel })
+    ]);
+
+    // reach bars
+    const barData = [
+      ['Advance', M.reach[0]], ['Round of 16', M.reach[1]], ['Quarter-final', M.reach[2]],
+      ['Semi-final', M.reach[3]], ['Final', M.reach[4]], ['Champion', M.reach[5]]
+    ];
+    const bars = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
+      barData.map(([label, p]) => el('div', { class: 'bar-row' }, [
+        el('div', { class: 'bar-label', text: label }),
+        el('div', { class: 'bar-track' }, [el('div', { class: 'bar-fill', style: { width: Math.max(p * 100, 1.5) + '%' } })]),
+        el('div', { class: 'bar-pct', text: pct(p) })
+      ])));
+    const barsSection = el('div', {}, [
+      el('div', { class: 'section-eyebrow', style: { marginBottom: '12px' }, text: 'Chance to reach round' }),
+      bars
+    ]);
+
+    // context section (group standings OR round opponents)
+    const ctx = el('div', { style: { flex: '1 1 auto' } });
+    if (focusRound >= 1 && focusRound <= 5) {
+      const title = ROUNDS[focusRound - 1] + ' · possible opponents';
+      const opps = M.faceDists[focusRound - 1].map(o => el('div', {
+        style: {
+          display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 11px', borderRadius: '9px',
+          background: 'rgba(140,175,225,.05)', border: '1px solid rgba(140,175,225,.1)'
+        }
+      }, [
+        el('div', { style: { width: '10px', height: '10px', borderRadius: '50%', background: o.color, flex: '0 0 auto' } }),
+        el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: '600', color: '#eaf1fb' }, text: o.name }),
+        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6' }, text: 'face ' + pct(o.p) }),
+        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#FECC00', width: '58px', textAlign: 'right' }, text: 'beat ' + pct(o.beatProb) })
+      ]));
+      ctx.appendChild(el('div', {}, [
+        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: title }),
+        el('div', { style: { fontSize: '12px', color: '#9fb4d6', marginBottom: '11px' }, text: 'Who ' + st.country + ' could face at this stage.' }),
+        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, opps)
+      ]));
+    } else if (focusRound === 6) {
+      ctx.appendChild(el('div', {}, [
+        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: 'Champions of the world' }),
+        el('div', { style: { fontSize: '12px', color: '#9fb4d6' }, text: st.country + ' have won the World Cup in this scenario.' })
+      ]));
+    } else {
+      // group standings (focus = group decider or knockout root)
+      const gb = team.groupBlock || { name: '', standings: [] };
+      const standings = (gb.standings || []).map(s => {
+        const self = !!s.self;
+        const gdStr = (s.gd > 0 ? '+' : '') + s.gd;
+        return el('div', {
+          style: {
+            display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 11px', borderRadius: '9px',
+            background: self ? 'rgba(254,204,0,.08)' : 'rgba(140,175,225,.04)',
+            border: self ? '1px solid rgba(254,204,0,.3)' : '1px solid rgba(140,175,225,.09)'
+          }
+        }, [
+          el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: self ? '#FECC00' : oppColor(s.name), flex: '0 0 auto' } }),
+          el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: self ? '700' : '500', color: self ? '#FECC00' : '#cfe0f5' }, text: s.name }),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#8ba3c7', width: '14px', textAlign: 'center' }, text: String(s.pld) }),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#8ba3c7', width: '24px', textAlign: 'center' }, text: gdStr }),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '13px', fontWeight: '700', color: self ? '#FECC00' : '#cfe0f5', width: '16px', textAlign: 'right' }, text: String(s.pts) })
+        ]);
+      });
+      const header = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '11px' } }, [
+        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em' }, text: (gb.name || 'Group') + (gb.stageLabel ? ' · ' + gb.stageLabel : '') }),
+        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', color: '#9fb4d6', letterSpacing: '.08em' }, text: 'Pld GD Pts' })
+      ]);
+      const sentence = M.hasGroupDecider
+        ? el('div', { style: { marginTop: '11px', fontSize: '12px', color: '#9fb4d6', lineHeight: '1.5' } }, [
+            'Final group game: ',
+            el('span', { style: { color: '#eaf1fb', fontWeight: '600' }, text: st.country + ' vs ' + M.remainingOpponent + '.' }),
+            ' The result sets where ' + st.country + ' lands in the bracket.'
+          ])
+        : el('div', { style: { marginTop: '11px', fontSize: '12px', color: '#9fb4d6', lineHeight: '1.5' }, text: 'Group stage complete — exploring from the knockout bracket.' });
+      ctx.appendChild(el('div', {}, [
+        header,
+        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } }, standings),
+        sentence
+      ]));
+    }
+
+    // breadcrumb (path so far)
+    const setActive = st.view === 'tree' ? rerootTree : drillPie;
+    const crumbs = activePath.map((s, i) => {
+      const lab = s.round === -1 ? 'Knockouts' : s.round === 0 ? (M.remainingOpponent || 'Group') : s.round === 6 ? '★ Champions' : s.opp.name;
+      const last = i === activePath.length - 1;
+      return el('button', {
+        class: 'crumb',
+        onclick: function () { setActive(activePath.slice(0, i + 1)); },
+        style: {
+          background: last ? 'rgba(254,204,0,.16)' : 'rgba(140,175,225,.08)',
+          border: '1px solid ' + (last ? 'rgba(254,204,0,.4)' : 'rgba(140,175,225,.16)'),
+          color: last ? '#FECC00' : '#cfe0f5'
+        }, text: (i > 0 ? '→ ' : '') + lab
+      });
+    });
+    const pathProbLabel = activePath.length > 1
+      ? 'Probability of this exact run so far: ' + pct(pathProb(activePath, M))
+      : 'Exploring from kickoff — click a node to drill in.';
+    const crumbSection = el('div', {}, [
+      el('div', { class: 'section-eyebrow', style: { marginBottom: '10px' }, text: 'Path so far' }),
+      el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '7px', alignItems: 'center' } }, crumbs),
+      el('div', { style: { marginTop: '10px', fontSize: '12px', color: '#9fb4d6' }, text: pathProbLabel })
+    ]);
+
+    return el('div', { class: 'leftpanel' }, [headline, barsSection, ctx, crumbSection]);
+  }
+
+  // ---------- DECISION TREE ----------
+  function buildTree(anim, wrap, M, st) {
+    const X0 = 100, COLW = 475, H = 540;
+    let leafCount = 0;
+    const flat = [];
+    const edges = [];
+
+    const rec = (path, cond, depth) => {
+      const last = path[path.length - 1];
+      const node = { idx: flat.length, depth, cond, path, last, kind: last.round === 6 ? 'champ' : (last.round === 99 ? 'lose' : 'opp'), label: last.label, kids: [] };
+      flat.push(node);
+      if (depth < MAXD && last.round < 6 && last.round !== 99) {
+        const cs = childrenOfRoot(path, M)
+          .filter(c => c.kind !== 'lose' && c.condP >= PRUNE)
+          .sort((a, b) => b.condP - a.condP)
+          .slice(0, TOPN);
+        for (const c of cs) {
+          const cp = c.kind === 'champ'
+            ? path.concat([{ round: 6, opp: null }])
+            : path.concat([{ round: c.round, opp: c.opp }]);
+          const ch = rec(cp, cond * c.condP, depth + 1);
+          edges.push({ from: node.idx, to: ch.idx, prob: cond * c.condP });
+          node.kids.push(ch);
+        }
+      }
+      if (node.kids.length === 0) node.y = leafCount++;
+      else node.y = node.kids.reduce((s, k) => s + k.y, 0) / node.kids.length;
+      return node;
+    };
+    rec(st.treeRoot, 1, 0);
+
+    const rowH = Math.max(56, Math.min(150, (H - 70) / Math.max(leafCount, 1)));
+    const yTop = (H - rowH * Math.max(leafCount, 1)) / 2 + rowH / 2;
+    const pos = flat.map(n => ({ x: X0 + n.depth * COLW, y: yTop + n.y * rowH }));
+
+    // edges
+    for (const e of edges) {
+      const a = pos[e.from], b = pos[e.to];
+      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      const w = Math.max(1.5, 1.5 + 9 * Math.sqrt(e.prob));
+      anim.appendChild(el('div', {
+        style: {
+          position: 'absolute', left: a.x + 'px', top: a.y + 'px', width: len + 'px', height: w + 'px',
+          marginTop: (-w / 2) + 'px', transformOrigin: '0 50%', transform: 'rotate(' + ang + 'deg)',
+          background: 'rgba(120,165,220,.5)', borderRadius: w + 'px', transition: 'all .4s ease', zIndex: 1
+        }
+      }));
+    }
+
+    // nodes
+    for (let i = 0; i < flat.length; i++) {
+      const n = flat[i], p = pos[i];
+      if (n.kind === 'champ' || n.kind === 'lose') {
+        const r = Math.max(13, 11 + 26 * Math.sqrt(n.cond));
+        const gold = n.kind === 'champ';
+        const node = el('div', {
+          title: gold ? 'World Cup won' : 'Eliminated',
+          style: {
+            position: 'absolute', left: p.x + 'px', top: p.y + 'px', width: (r * 2) + 'px', height: (r * 2) + 'px',
+            marginLeft: (-r) + 'px', marginTop: (-r) + 'px', borderRadius: '50%',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+            cursor: 'default',
+            background: gold ? 'radial-gradient(circle at 38% 30%,#fff3c0,#FECC00 62%,#f0a52a)' : 'rgba(150,60,70,.32)',
+            color: gold ? '#3a2a00' : '#f0c9cf',
+            border: gold ? '2px solid rgba(255,255,255,.5)' : '1px solid rgba(200,90,100,.45)',
+            boxShadow: gold ? '0 0 26px rgba(254,204,0,.5)' : 'none',
+            transition: 'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex: 3
+          }
+        }, [
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.05em', opacity: '.85', fontSize: (gold ? 12 : 8) + 'px' }, text: gold ? '★' : 'OUT' }),
+          el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: (gold ? 0 : 9) + 'px', marginTop: '1px', display: gold ? 'none' : 'block' }, text: gold ? 'Champions' : (n.label || 'Out') }),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: '11px', marginTop: '2px' }, text: pct(n.cond) })
+        ]);
+        anim.appendChild(node);
+      } else {
+        const r = Math.max(20, 18 + 44 * Math.sqrt(n.cond));
+        const lab = nodeLabel(n.last, M);
+        const col = n.last.round <= 0 ? '#1f7fc4' : n.last.round === 6 ? '#FECC00' : oppColor(n.last.opp.name);
+        const isRoot = n.depth === 0;
+        const fs = Math.max(10, r * 0.26);
+        const clickable = n.depth > 0;
+        const node = el('div', {
+          title: clickable ? 'Click to focus this scenario' : 'Current root',
+          onclick: clickable ? function () { rerootTree(n.path); } : null,
+          style: {
+            position: 'absolute', left: p.x + 'px', top: p.y + 'px', width: (r * 2) + 'px', height: (r * 2) + 'px',
+            marginLeft: (-r) + 'px', marginTop: (-r) + 'px', borderRadius: '50%',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+            cursor: clickable ? 'pointer' : 'default',
+            background: 'radial-gradient(circle at 38% 30%, rgba(255,255,255,.34), ' + col + ' 72%)',
+            color: '#fff',
+            border: isRoot ? '2.5px solid #FECC00' : '1px solid rgba(255,255,255,.2)',
+            boxShadow: isRoot ? '0 0 24px rgba(254,204,0,.4)' : '0 10px 26px -10px ' + col,
+            transition: 'all .45s cubic-bezier(.34,1.3,.5,1)', zIndex: isRoot ? 5 : 3, userSelect: 'none'
+          }
+        }, [
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.05em', opacity: '.85', fontSize: Math.max(8, fs * 0.62) + 'px' }, text: lab.tag }),
+          el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: fs + 'px', marginTop: '1px' }, text: lab.name }),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: Math.max(9, fs * 0.74) + 'px', marginTop: '2px' }, text: pct(n.cond) })
+        ]);
+        anim.appendChild(node);
+      }
+    }
+
+    // back button above the root
+    if (st.treeRoot.length > 1) {
+      const rr = 62, rx = pos[0].x, ry = pos[0].y;
+      addBackButton(wrap, M, st.treeRoot, rx, ry - rr - 46, function () { rerootTree(st.treeRoot.slice(0, -1)); });
+    }
+  }
+
+  // ---------- PIE EXPLORER ----------
+  function buildPie(anim, wrap, M, st, activePath, activeLast) {
+    const cx = 575, cy = 270, D = 300, Rpx = D / 2;
+    const last = activeLast;
+    const lab = nodeLabel(last, M);
+
+    const donutWrap = el('div', { style: { position: 'absolute', left: (cx - Rpx) + 'px', top: (cy - Rpx) + 'px', width: D + 'px', height: D + 'px', transition: 'all .4s ease' } });
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('style', 'width:100%;height:100%;overflow:visible;display:block;');
+    donutWrap.appendChild(svg);
+
+    const labels = [];
+
+    if (last.round < 6) {
+      const kids = childrenOfRoot(activePath, M).filter(c => c.condP >= PRUNE_PIE);
+      let a0 = -Math.PI / 2;
+      for (const c of kids) {
+        const a1 = a0 + 2 * Math.PI * c.condP;
+        const mid = (a0 + a1) / 2;
+        const isOpp = c.kind === 'opp' || c.kind === 'champ';
+        const col = c.kind === 'champ' ? '#FECC00' : c.kind === 'lose' ? '#7c3a44' : oppColor(c.opp.name);
+        const onSlice = isOpp ? function () {
+          if (c.kind === 'champ') drillPie(activePath.concat([{ round: 6, opp: null }]));
+          else drillPie(activePath.concat([{ round: c.round, opp: c.opp }]));
+        } : null;
+
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('data-slice', '1');
+        path.setAttribute('d', arcPath(a0, a1, 46, 27));
+        path.setAttribute('style', 'fill:' + col + ';stroke:#06122c;stroke-width:1.4px;stroke-linejoin:round;cursor:' + (isOpp ? 'pointer' : 'default') + ';opacity:' + (isOpp ? 0.95 : 0.7) + ';');
+        if (onSlice) path.addEventListener('click', onSlice);
+        svg.appendChild(path);
+
+        // outside label
+        const lr = Rpx + 58, lx = cx + lr * Math.cos(mid), ly = cy + lr * Math.sin(mid);
+        const rightSide = Math.cos(mid) >= 0;
+        const nm = c.kind === 'champ' ? 'Champions ★' : c.kind === 'lose' ? (c.label || 'Eliminated') : c.opp.name;
+        const beat = isOpp && c.kind === 'opp' ? beatOf(M, c.round - 1, c.opp.name) : 0;
+        const sub = c.kind === 'opp' ? ('face ' + pct(c.condP) + ' · beat ' + pct(beat)) : pct(c.condP);
+        labels.push(el('div', {
+          onclick: onSlice,
+          style: {
+            position: 'absolute', left: lx + 'px', top: ly + 'px',
+            transform: 'translate(' + (rightSide ? '0' : '-100%') + ', -50%)',
+            width: '150px', textAlign: rightSide ? 'left' : 'right', cursor: isOpp ? 'pointer' : 'default'
+          }
+        }, [
+          el('div', { style: { display: 'flex', alignItems: 'center', gap: '7px', justifyContent: rightSide ? 'flex-start' : 'flex-end' } }, [
+            el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: col } }),
+            el('div', { style: { fontSize: '13px', fontWeight: '700', color: '#eaf1fb' }, text: nm })
+          ]),
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', color: '#9fb4d6', marginTop: '2px' }, text: sub })
+        ]));
+        a0 = a1;
+      }
+    } else {
+      // champion terminal node — full gold donut
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('data-slice', '1');
+      path.setAttribute('d', arcPath(-Math.PI / 2, 1.5 * Math.PI, 46, 27));
+      path.setAttribute('style', 'fill:#FECC00;stroke:#06122c;stroke-width:1.4px;cursor:default;fill-rule:evenodd;');
+      svg.appendChild(path);
+    }
+
+    // center hole
+    let centerTag, centerName, centerSub = '';
+    if (last.round === -1) { centerTag = 'Knockouts'; centerName = 'Round of 32'; centerSub = 'Advance ' + pct(M.advance); }
+    else if (last.round === 0) { centerTag = 'Final group game'; centerName = 'vs ' + (M.remainingOpponent || '?'); centerSub = 'Advance ' + pct(M.advance); }
+    else if (last.round === 6) { centerTag = 'World Cup'; centerName = 'Champions ★'; centerSub = state.country + ' are world champions'; }
+    else {
+      centerTag = ROUNDS[last.round - 1];
+      centerName = 'vs ' + last.opp.name;
+      const beat = beatOf(M, last.round - 1, last.opp.name);
+      centerSub = 'Win ' + pct(beat);
+    }
+    const center = el('div', {
+      style: { position: 'absolute', inset: '0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none', padding: '0 18px' }
+    }, [
+      el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '11px', letterSpacing: '.1em', color: '#9fb4d6', textTransform: 'uppercase' }, text: centerTag }),
+      el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: '22px', lineHeight: '1.05', marginTop: '3px' }, text: centerName }),
+      el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#FECC00', marginTop: '4px' }, text: centerSub })
+    ]);
+    donutWrap.appendChild(center);
+
+    anim.appendChild(donutWrap);
+    labels.forEach(l => anim.appendChild(l));
+
+    if (st.piePath.length > 1) {
+      addBackButton(wrap, M, st.piePath, cx, cy - Rpx - 50, function () { drillPie(st.piePath.slice(0, -1)); });
+    }
+  }
+
+  // gold "Back to {parent}" button
+  function addBackButton(wrap, M, path, x, y, handler) {
+    const parent = path[path.length - 2];
+    const pl = parent.round === -1 ? 'Knockouts' : parent.round === 0 ? (M.remainingOpponent || 'Group') : parent.round === 6 ? 'Champions' : parent.opp.name;
+    const btn = el('button', {
+      onclick: handler,
+      style: {
+        position: 'absolute', left: x + 'px', top: y + 'px', marginLeft: '-84px',
+        width: '168px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+        background: '#FECC00', color: '#1a1205', border: 'none', borderRadius: '21px',
+        fontFamily: "'IBM Plex Sans'", fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+        boxShadow: '0 8px 20px -5px rgba(0,0,0,.55)', zIndex: 40
+      }
+    }, [
+      el('span', { style: { fontSize: '15px', lineHeight: '1' }, text: '↑' }),
+      document.createTextNode(' Back to ' + pl)
+    ]);
+    wrap.appendChild(btn);
+  }
+
+  // ===================== fit-to-container scaling =====================
+  function fit() {
+    const elv = document.querySelector('[data-stagearea]');
+    if (!elv) return;
+    const s = Math.min((elv.clientWidth - 30) / 1150, (elv.clientHeight - 26) / 540);
+    const v = Math.max(0.42, Math.min(s, 1.3));
+    if (Math.abs(v - state.scale) > 0.004) {
+      state.scale = v;
+      const w = elv.querySelector('div[style*="zoom"]') || elv.firstElementChild;
+      if (w) w.style.zoom = v; // adjust in place to avoid a full re-render loop
+    }
+  }
+  window.addEventListener('resize', fit);
+
+  // ResizeObserver on the stage area (re-attached after each render via the
+  // observer below, which watches #app's subtree implicitly through resize).
+  let ro = null;
+  function attachObserver() {
+    const elv = document.querySelector('[data-stagearea]');
+    if (elv && window.ResizeObserver) {
+      if (ro) ro.disconnect();
+      ro = new ResizeObserver(fit);
+      ro.observe(elv);
+    }
+  }
+  const _origRender = render;
+  render = function () { _origRender(); attachObserver(); };
+
+  // ===================== boot =====================
+  resetPaths();
+  render();
+  setTimeout(fit, 60);
+  requestAnimationFrame(function () { fit(); requestAnimationFrame(fit); });
+
+})();
+</script>
+</body>
+</html>
+"""
+
+
+if __name__ == "__main__":
+    main()

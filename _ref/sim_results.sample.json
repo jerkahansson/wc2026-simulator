@@ -1,0 +1,90 @@
+{
+  "_comment": "SAMPLE / MOCK data illustrating the contract the dashboard expects. Numbers here mirror the prototype's hard-coded illustrative values. simulate.py should emit a file of this exact shape (one object per focal team). Two shapes are shown: 'marginal' (minimum viable, drives the views as built) and 'tree' (recommended, enables exact conditional drilling). Pick ONE for production and delete the other; see README section 6.",
+
+  "marginal": {
+    "team": "Sweden",
+    "elo": 1985,
+    "generatedAt": "2026-06-24",
+    "championProb": 0.016,
+    "predictedFinish": "Quarter-final",
+    "group": {
+      "name": "Group H",
+      "stageLabel": "before MD3",
+      "remainingOpponent": "Japan",
+      "standings": [
+        { "name": "Netherlands", "pld": 2, "gd": 4, "pts": 6 },
+        { "name": "Sweden",      "pld": 2, "gd": 1, "pts": 3, "self": true },
+        { "name": "Japan",       "pld": 2, "gd": 0, "pts": 3 },
+        { "name": "Tunisia",     "pld": 2, "gd": -5, "pts": 1 }
+      ]
+    },
+    "reach": {
+      "advance": 0.88,
+      "r16": 0.47,
+      "qf": 0.27,
+      "sf": 0.12,
+      "final": 0.048,
+      "champion": 0.016
+    },
+    "rounds": [
+      { "round": "R32", "opponents": [
+        { "name": "Uruguay", "elo": 1990, "faceProb": 0.16, "beatProb": 0.49 },
+        { "name": "Senegal", "elo": 1925, "faceProb": 0.13, "beatProb": 0.59 },
+        { "name": "Egypt",   "elo": 1820, "faceProb": 0.11, "beatProb": 0.72 }
+      ]},
+      { "round": "R16", "opponents": [
+        { "name": "Croatia", "elo": 1945, "faceProb": 0.40, "beatProb": 0.56 },
+        { "name": "Morocco", "elo": 1955, "faceProb": 0.34, "beatProb": 0.54 },
+        { "name": "Mexico",  "elo": 1905, "faceProb": 0.26, "beatProb": 0.61 }
+      ]},
+      { "round": "QF", "opponents": [
+        { "name": "England",     "elo": 2060, "faceProb": 0.42, "beatProb": 0.40 },
+        { "name": "Netherlands", "elo": 2025, "faceProb": 0.32, "beatProb": 0.45 },
+        { "name": "Colombia",    "elo": 1960, "faceProb": 0.26, "beatProb": 0.54 }
+      ]},
+      { "round": "SF", "opponents": [
+        { "name": "Argentina", "elo": 2105, "faceProb": 0.45, "beatProb": 0.34 },
+        { "name": "Germany",   "elo": 2035, "faceProb": 0.30, "beatProb": 0.43 },
+        { "name": "Belgium",   "elo": 1980, "faceProb": 0.25, "beatProb": 0.51 }
+      ]},
+      { "round": "Final", "opponents": [
+        { "name": "Spain",  "elo": 2120, "faceProb": 0.50, "beatProb": 0.32 },
+        { "name": "Brazil", "elo": 2100, "faceProb": 0.30, "beatProb": 0.34 },
+        { "name": "France", "elo": 2080, "faceProb": 0.20, "beatProb": 0.37 }
+      ]}
+    ]
+  },
+
+  "tree": {
+    "team": "Sweden",
+    "elo": 1985,
+    "championProb": 0.016,
+    "group": { "name": "Group H", "remainingOpponent": "Japan",
+      "standings": [
+        { "name": "Netherlands", "pld": 2, "gd": 4, "pts": 6 },
+        { "name": "Sweden", "pld": 2, "gd": 1, "pts": 3, "self": true },
+        { "name": "Japan", "pld": 2, "gd": 0, "pts": 3 },
+        { "name": "Tunisia", "pld": 2, "gd": -5, "pts": 1 }
+      ]
+    },
+    "_comment": "Recursive node. 'match' = the fixture at this state. 'outcomes' = every way it resolves; condProb values at one node sum to 1.0. 'next' recurses. Emit-time pruning: drop any outcome whose ABSOLUTE probability (product of condProb from the root) is below ~0.5%, to bound file size. The dashboard does its own display pruning on top (see PRUNE constants).",
+    "match": { "round": "GROUP", "opponent": "Japan", "opponentElo": 1850 },
+    "outcomes": [
+      { "type": "eliminated", "condProb": 0.12 },
+      { "type": "advance", "opponent": "Uruguay", "opponentElo": 1990, "condProb": 0.14,
+        "next": {
+          "match": { "round": "R32", "opponent": "Uruguay", "opponentElo": 1990 },
+          "outcomes": [
+            { "type": "eliminated", "condProb": 0.51 },
+            { "type": "advance", "opponent": "Croatia", "opponentElo": 1945, "condProb": 0.196,
+              "next": { "match": { "round": "R16", "opponent": "Croatia" }, "outcomes": [ "...recurse to Final..." ] } },
+            { "type": "advance", "opponent": "Morocco", "opponentElo": 1955, "condProb": 0.167, "next": { "...": "..." } },
+            { "type": "advance", "opponent": "Mexico",  "opponentElo": 1905, "condProb": 0.127, "next": { "...": "..." } }
+          ]
+        }
+      },
+      { "type": "advance", "opponent": "Senegal", "opponentElo": 1925, "condProb": 0.11, "next": { "...": "..." } },
+      { "type": "advance", "opponent": "Egypt", "opponentElo": 1820, "condProb": 0.10, "next": { "...": "..." } }
+    ]
+  }
+}
