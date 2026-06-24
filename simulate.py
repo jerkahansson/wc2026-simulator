@@ -385,14 +385,22 @@ def group_standings():
     return standings, remaining, stage
 
 
-TREE_PRUNE_ABS = 0.005   # drop tree branches below 0.5% absolute probability
+TREE_REL_PRUNE = 0.05    # keep a child if it's >= 5% likely GIVEN you're at its parent
+TREE_MIN_N = 30          # ...and backed by at least this many sims (avoid noise)
+TREE_ROOT_MIN = 0.01     # keep an R32 opponent reached >= 1% of the time overall
+TREE_MAX_KIDS = 4        # cap children per node (UI shows top-3; depth matters, not breadth)
 
 
 def build_conditional_tree(root, remaining_opp, n_sims):
     """Emit the recursive conditional knockout tree (handoff §6b) from a team's
     trie. Each node: the match (round, opponent), condProb (vs its parent),
     reachProb (absolute), beatProb (chance to win that match), and children =
-    the conditional next-round opponents (pruned at 0.5% absolute probability)."""
+    the conditional next-round opponents.
+
+    Pruning is RELATIVE to the parent (condProb >= TREE_REL_PRUNE), not absolute,
+    so a node always shows its meaningful continuations regardless of how unlikely
+    the path is overall — you can keep drilling toward the Final. A small sample
+    floor keeps noisy single-sim branches out."""
     def emit(node, depth, opp, n_parent):
         n, w = node["n"], node["w"]
         out = {
@@ -404,16 +412,18 @@ def build_conditional_tree(root, remaining_opp, n_sims):
             "beatProb": round(w / n, 5) if n else 0.0,
             "children": [],
         }
-        if depth < len(ROUND_SEQ) - 1:    # not the Final → may have next-round kids
-            for o2, sub in sorted(node["kids"].items(), key=lambda kv: -kv[1]["n"]):
-                if sub["n"] / n_sims >= TREE_PRUNE_ABS:
-                    out["children"].append(emit(sub, depth + 1, o2, n))
+        if depth < len(ROUND_SEQ) - 1 and n > 0:   # not the Final → may have kids
+            ranked = sorted(node["kids"].items(), key=lambda kv: -kv[1]["n"])
+            kept = [(o2, sub) for o2, sub in ranked
+                    if sub["n"] / n >= TREE_REL_PRUNE and sub["n"] >= TREE_MIN_N]
+            for o2, sub in kept[:TREE_MAX_KIDS]:
+                out["children"].append(emit(sub, depth + 1, o2, n))
         return out
 
     adv = sum(s["n"] for s in root["kids"].values())
     children = []
     for opp, sub in sorted(root["kids"].items(), key=lambda kv: -kv[1]["n"]):
-        if sub["n"] / n_sims >= TREE_PRUNE_ABS:
+        if sub["n"] / n_sims >= TREE_ROOT_MIN:
             children.append(emit(sub, 0, opp, n_sims))
     return {
         "round": "GROUP",

@@ -406,7 +406,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
     // ---------- stage ----------
     const stageHint = st.view === 'tree'
-      ? 'Each node: green/red ring = chance to win that game · number = chance to reach it · size = probability · click a node to make it the root'
+      ? 'Each node: green/red ring = chance to win that game · number & size = how likely this matchup is, given the previous one · click a node to make it the root'
       : 'The pie shows how this match resolves · click a team slice to follow that path into the next round';
 
     const stageArea = el('div', { 'data-stagearea': '1', class: 'stagearea' });
@@ -573,7 +573,11 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       el('div', { style: { marginTop: '10px', fontSize: '12px', color: '#9fb4d6' }, text: pathProbLabel })
     ]);
 
-    return el('div', { class: 'leftpanel' }, [headline, barsSection, ctx, crumbSection]);
+    const simNote = el('div', {
+      style: { marginTop: '4px', fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', color: '#6f86ad', letterSpacing: '.04em', lineHeight: '1.5' },
+      text: 'Based on ' + Number(DATA.n_sims).toLocaleString() + ' Monte-Carlo simulations · updated ' + (DATA.updated || '')
+    });
+    return el('div', { class: 'leftpanel' }, [headline, barsSection, ctx, crumbSection, simNote]);
   }
 
   // ---------- DECISION TREE ----------
@@ -583,9 +587,10 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     const flat = [];
     const edges = [];
 
-    const rec = (path, cond, depth) => {
+    const rec = (path, cond, depth, condParent) => {
       const last = path[path.length - 1];
-      const node = { idx: flat.length, depth, cond, path, last, kind: last.round === 6 ? 'champ' : (last.round === 99 ? 'lose' : 'opp'), label: last.label, kids: [] };
+      // condParent = this node's probability GIVEN its parent (null for the root).
+      const node = { idx: flat.length, depth, cond, condParent, path, last, kind: last.round === 6 ? 'champ' : (last.round === 99 ? 'lose' : 'opp'), label: last.label, kids: [] };
       flat.push(node);
       if (depth < MAXD && last.round < 6 && last.round !== 99) {
         const cs = childrenOfRoot(path, M)
@@ -596,7 +601,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
           const cp = c.kind === 'champ'
             ? path.concat([{ round: 6, opp: null }])
             : path.concat([{ round: c.round, opp: c.opp }]);
-          const ch = rec(cp, cond * c.condP, depth + 1);
+          const ch = rec(cp, cond * c.condP, depth + 1, c.condP);
           edges.push({ from: node.idx, to: ch.idx, prob: cond * c.condP });
           node.kids.push(ch);
         }
@@ -605,7 +610,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       else node.y = node.kids.reduce((s, k) => s + k.y, 0) / node.kids.length;
       return node;
     };
-    rec(st.treeRoot, 1, 0);
+    rec(st.treeRoot, 1, 0, null);
 
     const rowH = Math.max(42, Math.min(150, (H - 40) / Math.max(leafCount, 1)));
     const yTop = (H - rowH * Math.max(leafCount, 1)) / 2 + rowH / 2;
@@ -635,7 +640,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     for (let i = 0; i < flat.length; i++) {
       const n = flat[i], p = pos[i];
       if (n.kind === 'champ' || n.kind === 'lose') {
-        const r = Math.min(Math.max(13, 11 + 26 * Math.sqrt(n.cond)), maxRForDepth(n.depth));
+        const r = Math.min(Math.max(13, 11 + 26 * Math.sqrt(n.condParent || 0)), maxRForDepth(n.depth));
         const gold = n.kind === 'champ';
         const node = el('div', {
           title: gold ? 'World Cup won' : 'Eliminated',
@@ -653,7 +658,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         }, [
           el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.05em', opacity: '.85', fontSize: (gold ? 12 : 8) + 'px' }, text: gold ? '★' : 'OUT' }),
           el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: (gold ? 0 : 9) + 'px', marginTop: '1px', display: gold ? 'none' : 'block' }, text: gold ? 'Champions' : (n.label || 'Out') }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: '11px', marginTop: '2px' }, text: pct(n.cond) })
+          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: '11px', marginTop: '2px' }, text: pct(n.condParent || 0) })
         ]);
         anim.appendChild(node);
       } else {
@@ -662,25 +667,28 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         // this matchup. The GROUP node (vs the last group opponent) is special —
         // qualifying is not a single win/lose match, so its ring is blue =
         // advance / grey = out and its number is the advance chance.
-        let r = Math.max(20, 18 + 44 * Math.sqrt(n.cond));
+        const isRoot = n.depth === 0;
+        // Size = probability of THIS outcome given its parent (condParent).
+        // The current root has no parent, so it's drawn at a fixed large size.
+        let r = isRoot ? 54 : Math.max(18, 16 + 46 * Math.sqrt(n.condParent || 0));
         r = Math.min(r, maxRForDepth(n.depth));
         const lab = nodeLabel(n.last, M);
         const isGroup = n.last.round <= 0;          // group decider / knockouts root
         const teamCol = isGroup ? '#1f7fc4' : oppColor(n.last.opp.name);
-        const isRoot = n.depth === 0;
         const clickable = n.depth > 0;
         const oppName = isGroup ? (M.remainingOpponent || 'group') : n.last.opp.name;
-        // ring fraction (green/blue portion) and the number shown in the hole.
-        // winP is the CONDITIONAL win/advance chance at this exact node.
+        // ring fraction (green/blue portion). winP = CONDITIONAL win/advance at this node.
         const winP = nodeBeat(n.path, M);
-        const numLabel = isGroup ? pct(winP) : pct(n.cond);   // advance vs chance-to-reach
+        // Number in the hole = probability vs the PARENT node. The root shows none.
+        const numLabel = isRoot ? '' : pct(n.condParent || 0);
         const deg = Math.round(winP * 360);
         const ring = isGroup
           ? 'conic-gradient(#1f7fc4 0deg ' + deg + 'deg, rgba(140,175,225,.20) ' + deg + 'deg 360deg)'
           : 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)';
         const tip = isGroup
           ? (state.country + ' advance from ' + (M.groupName || 'the group') + ': ' + pct(M.advance) + ' (out ' + pct(1 - M.advance) + ') — final game vs ' + oppName)
-          : (state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP) + ' · reach this tie ' + pct(n.cond));
+          : (state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP)
+             + (n.condParent != null ? ' · ' + pct(n.condParent) + ' chance from the previous match' : ''));
         const hole = r * 0.62;            // donut hole radius
         const wfs = Math.max(9, hole * 0.7);   // number font
         const showName = r >= 27;         // only big nodes have room for the name
@@ -688,7 +696,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
           el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.04em', fontSize: Math.max(7, hole * 0.34) + 'px', color: '#9fb4d6', lineHeight: '1' }, text: lab.tag })
         ];
         if (showName) holeKids.push(el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: Math.max(8, hole * 0.42) + 'px', marginTop: '1px', color: teamCol, maxWidth: (hole * 1.8) + 'px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: oppName }));
-        holeKids.push(el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: wfs + 'px', marginTop: '1px', color: '#eaf1fb', lineHeight: '1' }, text: numLabel }));
+        if (numLabel) holeKids.push(el('div', { style: { fontFamily: "'Archivo',sans-serif", fontWeight: '800', fontSize: wfs + 'px', marginTop: '1px', color: '#eaf1fb', lineHeight: '1' }, text: numLabel }));
         const node = el('div', {
           title: tip,
           onclick: clickable ? function () { rerootTree(n.path); } : null,
