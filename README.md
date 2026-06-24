@@ -22,13 +22,16 @@ copabet_picks.py ──┘     (Monte Carlo)      (data contract)      (static s
 bracket.py ────────┘
 ```
 
-- **Strength** = World Football Elo (`elo_ratings.json`, from eloratings.net).
+- **Strength** = World Football Elo (`elo_ratings.json`, from eloratings.net via
+  `fetch_elo.py`).
 - **Match model** = Elo difference → expected-goal supremacy → Poisson scorelines.
   The `(B, T)` constants are calibrated once against de-vigged market odds.
 - **As-of-today**: played results in `results.json` are fixed; only the remaining
   group games + the whole knockout bracket are simulated (`bracket.py` wires the
-  official FIFA bracket and best-third logic).
-- **Monte Carlo**: replay the tournament N times (default 50 000), aggregate per-team
+  official FIFA bracket and best-third logic). `results.json` is auto-filled by
+  `fetch_results.py` from the official FIFA API — group scores **and** played knockout
+  winners, which are pinned so eliminated teams stop being re-simulated as champions.
+- **Monte Carlo**: replay the tournament N times (default 500 000), aggregate per-team
   round-reach frequencies **and** per-round opponent distributions.
 
 ### Data contract (`sim_results.json`)
@@ -46,33 +49,46 @@ Per team (the *marginal* shape from the design handoff §6a):
 The decision tree, pie explorer, and left-panel opponents are all driven by the
 **conditional `tree`** — so deeper branches show the real bracket geography (which R16
 region you land in depends on *which* R32 opponent you beat), not a repeated marginal set.
-Branches are pruned **relative to the parent** (a child is kept if it's ≥5% likely *given*
-you're at its parent, backed by ≥30 sims), so the main lines drill all the way toward the
-Final instead of dead-ending early. In the UI, each node's **number and size are its
-probability given the parent node**; the current root shows no number.
+Each node keeps its **top-6 most-likely** next opponents, backed by ≥5 sims (a small
+anti-noise floor), so the main lines drill all the way toward the Final instead of
+dead-ending early. In the UI, each node's **number and size are its probability given the
+parent node**; the current root shows no number. Branches reached by few simulations are
+flagged with a trailing `*` (their percentages are statistically noisy — indicative only).
 
-Default `n_sims` is **200 000** (~75s). More sims make the displayed conditional
+Default `n_sims` is **500 000** (~3 min). More sims make the displayed conditional
 percentages more *stable* (deeper nodes get more samples); they don't change the prune rule.
 
 ## Rebuild
 
 ```bash
-python simulate.py 200000  # writes sim_results.json (default 200k; ~75s)
+python fetch_elo.py        # refresh elo_ratings.json from eloratings.net
+python fetch_results.py    # refresh results.json from the FIFA API
+python simulate.py 500000  # writes sim_results.json (default 500k; ~3 min)
 python build_site.py       # writes index.html
 python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracket, invariants)
 ```
 
-## Daily refresh (during the tournament)
+## Daily refresh (automated — no human in the loop)
 
-A scheduled agent runs daily until the final:
-1. fetch newly-finished scores into `results.json`,
-2. fetch current Elo from eloratings.net (`fetch_elo.py`),
-3. re-run `simulate.py` + `build_site.py`,
-4. commit & push to `main` → Cloudflare Pages auto-deploys.
+`.github/workflows/daily-refresh.yml` runs every morning at **06:30 UTC (08:30
+Stockholm)** — and on demand from the Actions tab (**Run workflow**). It:
+1. fetches current Elo (`fetch_elo.py`),
+2. fetches finished scores + knockout winners (`fetch_results.py`),
+3. re-runs `simulate.py 500000` + `build_site.py`,
+4. runs `verify_sim.py` as a green-gate, then commits & pushes to `main`
+   → Cloudflare Pages auto-deploys.
 
-`fetch_elo.py` is a deterministic helper: `fetch_live()` scrapes eloratings.net,
-`apply_ratings()` validates all 48 team keys before writing. `--check` validates the
-current file.
+**No API keys or secrets** — both data sources are public. Each step aborts the run
+*before* the commit on any failure, so a bad fetch or a failed check leaves the live
+site untouched (it never publishes fabricated or partial data).
+
+Both fetchers are deterministic helpers that validate before writing and **raise rather
+than fabricate** on any fetch/parse failure:
+- `fetch_elo.py` — `fetch_live()` reads eloratings.net, `apply_ratings()` validates all
+  48 team keys. `--check` validates the current file.
+- `fetch_results.py` — reads the official FIFA API, maps team names to the 48 canonical
+  keys, orients group scores to each fixture, and records knockout winners. `--check`
+  validates the current file.
 
 ## Hosting
 

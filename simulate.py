@@ -42,9 +42,16 @@ with open(os.path.join(DIR, "elo_ratings.json"), encoding="utf-8") as f:
     ELO = json.load(f)["ratings"]
 
 with open(os.path.join(DIR, "results.json"), encoding="utf-8") as f:
-    _res = json.load(f)["results"]
+    _resdoc = json.load(f)
+_res = _resdoc["results"]
 FINAL = {(r["home"], r["away"]): (r["score_home"], r["score_away"])
          for r in _res if r["status"] == "final"}
+# Played knockout matches, pinned by unordered team pair -> advancing winner.
+# Single-elimination => any two teams meet at most once, so the pair is a unique
+# key (robust to which bracket slot they happen to meet in). Empty until the
+# knockout stage starts; populated by fetch_results.py from the FIFA API.
+KO_FINAL = {frozenset((r["home"], r["away"])): r["winner"]
+            for r in _resdoc.get("knockout", []) if r.get("winner")}
 
 # sanity: every team referenced in the fixtures has an Elo rating
 _teams = {t for _, _, h, a, *_ in MATCHES for t in (h, a)}
@@ -232,7 +239,11 @@ def simulate_once(rng):
         sa, sb = bk.KO_MATCHES[n]
         ta, tb = resolve(sa), resolve(sb)
         matchup[n] = (ta, tb)
-        w, l = _play_ko(ta, tb, rng)
+        pinned = KO_FINAL.get(frozenset((ta, tb)))
+        if pinned in (ta, tb):                 # real played result -> fix it
+            w, l = pinned, (tb if pinned == ta else ta)
+        else:                                  # not played yet -> simulate
+            w, l = _play_ko(ta, tb, rng)
         win[n], lose[n] = w, l
 
     qualifiers = (set(winners.values()) | set(runners.values())
@@ -385,9 +396,12 @@ def group_standings():
     return standings, remaining, stage
 
 
-TREE_MIN_N = 30          # only keep a child backed by at least this many sims (anti-noise)
+TREE_MIN_N = 5           # only keep a child backed by at least this many sims (anti-noise)
 TREE_ROOT_MIN = 0.005    # keep an R32 opponent reached >= 0.5% of the time overall
-TREE_MAX_KIDS = 6        # keep the top-6 most-likely children per node (no prob threshold)
+TREE_MAX_KIDS = 4        # keep the top-4 most-likely children per node (no prob threshold).
+                         # The tree shows 3/level and the pie hides <1.2% slices, so 4 covers
+                         # everything displayed; capping here (vs 6) keeps the inlined data file
+                         # servable now that the low TREE_MIN_N admits many more deep branches.
 
 
 def build_conditional_tree(root, remaining_opp, n_sims):
@@ -477,7 +491,7 @@ def build_rich_payload(out, agg, group, n_sims):
 
 def main():
     global B, T
-    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 200000
+    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 500000
     B, T, mae = calibrate()
     print(f"Calibrated: B={B}  T={T}  (1X2 mean abs error vs market = {mae:.4f})")
 

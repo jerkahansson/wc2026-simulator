@@ -174,6 +174,17 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     return v.toFixed(2) + '%';
   }
 
+  // A branch is "low confidence" when few simulations reached it — its
+  // conditional percentages are then statistically noisy. We still SHOW such
+  // branches (so the tree drills toward the Final instead of dead-ending) but
+  // flag them with a trailing "*" and an explanatory tooltip. reachP is a
+  // node's absolute reach probability; reachP * n_sims ≈ the sample count.
+  const LOWCONF_SAMPLES = 50;
+  function lowConf(reachP) {
+    return reachP != null && (reachP * DATA.n_sims) < LOWCONF_SAMPLES;
+  }
+  function star(reachP) { return lowConf(reachP) ? '*' : ''; }
+
   // ===================== state =====================
   const teamNames = Object.keys(DATA.teams).sort();
   const state = {
@@ -260,7 +271,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
     const out = (node.children || []).map(c => ({
       kind: 'opp', round: roundNum(c.round), opp: { name: c.opponent, elo: c.elo },
-      condP: c.condProb, beatProb: c.beatProb
+      condP: c.condProb, beatProb: c.beatProb, reachP: c.reachProb
     }));
     const label = isRoot ? 'Out in group' : 'Out in ' + RSHORT[last.round - 1];
     out.push({ kind: 'lose', round: 99, condP: 1 - winP, label: label });
@@ -578,6 +589,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     const simNote = el('div', {
       style: { marginTop: '4px', fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', color: '#6f86ad', letterSpacing: '.04em', lineHeight: '1.5' },
       text: 'Based on ' + Number(DATA.n_sims).toLocaleString() + ' Monte-Carlo simulations · updated ' + (DATA.updated || '')
+        + ' · * = few simulations reached this branch (indicative only)'
     });
     return el('div', { class: 'leftpanel' }, [headline, barsSection, ctx, crumbSection, simNote]);
   }
@@ -682,15 +694,17 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         // ring fraction (green/blue portion). winP = CONDITIONAL win/advance at this node.
         const winP = nodeBeat(n.path, M);
         // Number in the hole = probability vs the PARENT node. The root shows none.
-        const numLabel = isRoot ? '' : pct(n.condParent || 0);
+        const lc = !isGroup && lowConf(n.last.reachP);
+        const numLabel = isRoot ? '' : pct(n.condParent || 0) + (lc ? '*' : '');
         const deg = Math.round(winP * 360);
         const ring = isGroup
           ? 'conic-gradient(#1f7fc4 0deg ' + deg + 'deg, rgba(140,175,225,.20) ' + deg + 'deg 360deg)'
           : 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)';
-        const tip = isGroup
+        const tip = (isGroup
           ? (state.country + ' advance from ' + (M.groupName || 'the group') + ': ' + pct(M.advance) + ' (out ' + pct(1 - M.advance) + ') — final game vs ' + oppName)
           : (state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP)
-             + (n.condParent != null ? ' · ' + pct(n.condParent) + ' chance from the previous match' : ''));
+             + (n.condParent != null ? ' · ' + pct(n.condParent) + ' chance from the previous match' : '')))
+          + (lc ? ' · * few simulations reached here — indicative only' : '');
         const hole = r * 0.62;            // donut hole radius
         const wfs = Math.max(9, hole * 0.7);   // number font
         const showName = r >= 27;         // only big nodes have room for the name
@@ -771,10 +785,12 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         const rightSide = Math.cos(mid) >= 0;
         const nm = c.kind === 'champ' ? 'Champions ★' : c.kind === 'lose' ? (c.label || 'Eliminated') : c.opp.name;
         const beat = c.kind === 'opp' ? (c.beatProb || 0) : 0;
-        const sub = c.kind === 'opp' ? ('face ' + pct(c.condP) + ' · beat ' + pct(beat)) : pct(c.condP);
+        const lc = c.kind === 'opp' && lowConf(c.reachP);
+        const sub = (c.kind === 'opp' ? ('face ' + pct(c.condP) + ' · beat ' + pct(beat)) : pct(c.condP)) + (lc ? '*' : '');
         // hover tooltip on the slice (shows the legend / team name)
         const titleEl = document.createElementNS(svgNS, 'title');
-        titleEl.textContent = c.kind === 'opp' ? (nm + ' — face ' + pct(c.condP) + ' · beat ' + pct(beat)) : (nm + ' — ' + pct(c.condP));
+        titleEl.textContent = (c.kind === 'opp' ? (nm + ' — face ' + pct(c.condP) + ' · beat ' + pct(beat)) : (nm + ' — ' + pct(c.condP)))
+          + (lc ? ' · * few simulations reached here — indicative only' : '');
         path.appendChild(titleEl);
         // For small slices the face/beat line just clutters — drop it below 2.5%
         // (still available on hover via the slice tooltip). Keep the team name.

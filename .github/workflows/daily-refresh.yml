@@ -1,0 +1,65 @@
+name: Daily refresh
+
+# Rebuilds the site every morning from live data, with no human in the loop:
+# fetch Elo + finished scores, re-run the Monte-Carlo simulation, rebuild the
+# static site, and push. Cloudflare Pages auto-deploys the pushed index.html.
+#
+# 06:30 UTC = 08:30 Europe/Stockholm (CEST, summer) — after the prior North-
+# American match day has finished. Also runnable on demand from the Actions tab.
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch: {}
+
+# Allow the default GITHUB_TOKEN to push the rebuilt files back to the repo.
+permissions:
+  contents: write
+
+# If a manual run overlaps the scheduled one, let the newer run win.
+concurrency:
+  group: daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Each step that fails aborts the job BEFORE the commit step, so a bad
+      # fetch or a failed verify leaves the live site untouched (fail-safe).
+      - name: Fetch current Elo ratings
+        run: python fetch_elo.py
+
+      - name: Fetch finished match results
+        run: python fetch_results.py
+
+      - name: Run Monte-Carlo simulation
+        run: python simulate.py 500000
+
+      - name: Build static site
+        run: python build_site.py
+
+      - name: Verify (calibration, tiebreakers, bracket, invariants)
+        run: python verify_sim.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add elo_ratings.json results.json sim_results.json index.html
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Daily refresh: Elo + results + re-sim ($(date -u +%Y-%m-%d))"
+            git push
+          fi
