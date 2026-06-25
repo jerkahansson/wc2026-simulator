@@ -1,6 +1,6 @@
 {
   "_comment": "Final scores for played WC2026 matches. results[] = group stage keyed by fixture home/away; knockout[] carries the advancing winner. Auto-updated daily from the FIFA public API (api.fifa.com) by fetch_results.py.",
-  "updated": "2026-06-24",
+  "updated": "2026-06-25",
   "results": [
     {"home": "Mexico", "away": "South Africa", "status": "final", "score_home": 2, "score_away": 0, "date": "2026-06-11"},
     {"home": "Canada", "away": "Bosnia & Herzegovina", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-12"},
@@ -51,7 +51,11 @@
     {"home": "Portugal", "away": "Uzbekistan", "status": "final", "score_home": 5, "score_away": 0, "date": "2026-06-23"},
     {"home": "Bosnia & Herzegovina", "away": "Qatar", "status": "final", "score_home": 3, "score_away": 1, "date": "2026-06-24"},
     {"home": "Colombia", "away": "D.R. Congo", "status": "final", "score_home": 1, "score_away": 0, "date": "2026-06-24"},
-    {"home": "Switzerland", "away": "Canada", "status": "final", "score_home": 2, "score_away": 1, "date": "2026-06-24"}
+    {"home": "Morocco", "away": "Haiti", "status": "final", "score_home": 4, "score_away": 2, "date": "2026-06-24"},
+    {"home": "Scotland", "away": "Brazil", "status": "final", "score_home": 0, "score_away": 3, "date": "2026-06-24"},
+    {"home": "Switzerland", "away": "Canada", "status": "final", "score_home": 2, "score_away": 1, "date": "2026-06-24"},
+    {"home": "Czech Republic", "away": "Mexico", "status": "final", "score_home": 0, "score_away": 3, "date": "2026-06-25"},
+    {"home": "South Africa", "away": "South Korea", "status": "final", "score_home": 1, "score_away": 0, "date": "2026-06-25"}
   ],
   "knockout": []
 }
