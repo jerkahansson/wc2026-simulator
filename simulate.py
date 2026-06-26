@@ -493,7 +493,7 @@ def build_rich_payload(out, agg, group, n_sims):
 
 def main():
     global B, T
-    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 500000
+    n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 200000
     B, T, mae = calibrate()
     print(f"Calibrated: B={B}  T={T}  (1X2 mean abs error vs market = {mae:.4f})")
 
