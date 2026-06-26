@@ -1,6 +1,6 @@
 {
   "_comment": "Final scores for played WC2026 matches. results[] = group stage keyed by fixture home/away; knockout[] carries the advancing winner. Auto-updated daily from the FIFA public API (api.fifa.com) by fetch_results.py.",
-  "updated": "2026-06-25",
+  "updated": "2026-06-26",
   "results": [
     {"home": "Mexico", "away": "South Africa", "status": "final", "score_home": 2, "score_away": 0, "date": "2026-06-11"},
     {"home": "Canada", "away": "Bosnia & Herzegovina", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-12"},
@@ -54,8 +54,14 @@
     {"home": "Morocco", "away": "Haiti", "status": "final", "score_home": 4, "score_away": 2, "date": "2026-06-24"},
     {"home": "Scotland", "away": "Brazil", "status": "final", "score_home": 0, "score_away": 3, "date": "2026-06-24"},
     {"home": "Switzerland", "away": "Canada", "status": "final", "score_home": 2, "score_away": 1, "date": "2026-06-24"},
+    {"home": "Curacao", "away": "Ivory Coast", "status": "final", "score_home": 0, "score_away": 2, "date": "2026-06-25"},
     {"home": "Czech Republic", "away": "Mexico", "status": "final", "score_home": 0, "score_away": 3, "date": "2026-06-25"},
-    {"home": "South Africa", "away": "South Korea", "status": "final", "score_home": 1, "score_away": 0, "date": "2026-06-25"}
+    {"home": "Ecuador", "away": "Germany", "status": "final", "score_home": 2, "score_away": 1, "date": "2026-06-25"},
+    {"home": "Japan", "away": "Sweden", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-25"},
+    {"home": "South Africa", "away": "South Korea", "status": "final", "score_home": 1, "score_away": 0, "date": "2026-06-25"},
+    {"home": "Tunisia", "away": "Netherlands", "status": "final", "score_home": 1, "score_away": 3, "date": "2026-06-25"},
+    {"home": "Paraguay", "away": "Australia", "status": "final", "score_home": 0, "score_away": 0, "date": "2026-06-26"},
+    {"home": "Turkey", "away": "USA", "status": "final", "score_home": 3, "score_away": 2, "date": "2026-06-26"}
   ],
   "knockout": []
 }
