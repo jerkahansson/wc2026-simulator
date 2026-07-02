@@ -306,6 +306,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   }
 
   function nodeLabel(node, M) {
+    if (node.round === -1) return { tag: 'KNOCKOUTS', name: 'Round of 32' };
     if (node.round === 0) return { tag: 'GROUP', name: 'vs ' + (M.remainingOpponent || '?') };
     if (node.round === 6) return { tag: 'CHAMPION', name: '★' };
     if (node.round === 99) return { tag: 'OUT', name: 'Eliminated' };
@@ -688,9 +689,10 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         r = Math.min(r, maxRForDepth(n.depth));
         const lab = nodeLabel(n.last, M);
         const isGroup = n.last.round <= 0;          // group decider / knockouts root
+        const isKORoot = n.last.round === -1;       // synthetic root once groups are done
         const teamCol = isGroup ? '#1f7fc4' : oppColor(n.last.opp.name);
         const clickable = n.depth > 0;
-        const oppName = isGroup ? (M.remainingOpponent || 'group') : n.last.opp.name;
+        const oppName = isKORoot ? 'Round of 32' : isGroup ? (M.remainingOpponent || 'group') : n.last.opp.name;
         // ring fraction (green/blue portion). winP = CONDITIONAL win/advance at this node.
         const winP = nodeBeat(n.path, M);
         // Number in the hole = probability vs the PARENT node. The root shows none.
@@ -700,7 +702,11 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         const ring = isGroup
           ? 'conic-gradient(#1f7fc4 0deg ' + deg + 'deg, rgba(140,175,225,.20) ' + deg + 'deg 360deg)'
           : 'conic-gradient(#2ea043 0deg ' + deg + 'deg, #7c3a44 ' + deg + 'deg 360deg)';
-        const tip = (isGroup
+        const tip = (isKORoot
+          ? (M.advance > 0
+             ? state.country + ' in the knockout bracket — click a node to explore the possible paths'
+             : state.country + ' were eliminated in the group stage')
+          : isGroup
           ? (state.country + ' advance from ' + (M.groupName || 'the group') + ': ' + pct(M.advance) + ' (out ' + pct(1 - M.advance) + ') — final game vs ' + oppName)
           : (state.country + ' vs ' + oppName + ' — win ' + pct(winP) + ', lose ' + pct(1 - winP)
              + (n.condParent != null ? ' · ' + pct(n.condParent) + ' chance from the previous match' : '')))

@@ -116,8 +116,15 @@ def test_probability_invariants(n=4000):
             f"{t} not monotonic: {seq}"
     ok("every team's round-reach chain is monotonically non-increasing")
 
-    top = sorted(out, key=lambda t: -out[t]["winner"])[:5]
-    assert {"Argentina", "Spain", "France"} <= set(top), f"top5={top}"
+    # Strong teams should lead the title odds — but only among teams still
+    # alive (pinned knockout losses zero out eliminated favourites, so no
+    # hardcoded names here). Guard: every top-5 favourite sits in the top-10
+    # Elo of the alive teams, i.e. the model never inverts strength.
+    alive = [t for t in out if out[t]["winner"] > 0]
+    top = sorted(alive, key=lambda t: -out[t]["winner"])[:5]
+    elo_top = set(sorted(alive, key=lambda t: -sim.ELO[t])[:10])
+    bad = [t for t in top if t not in elo_top]
+    assert not bad, f"weak team(s) lead the title odds: {bad} (top5={top})"
     ok(f"strong teams lead the title odds: {top}")
 
     for host in bk.HOSTS:

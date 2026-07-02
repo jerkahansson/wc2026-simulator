@@ -50,7 +50,7 @@ jobs:
         run: python fetch_results.py
 
       - name: Run Monte-Carlo simulation
-        run: python simulate.py 500000
+        run: python simulate.py 200000
 
       - name: Build static site
         run: python build_site.py

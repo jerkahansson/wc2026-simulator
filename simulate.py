@@ -187,13 +187,16 @@ def simulate_once(rng):
     sets contain every team that *reached* that round.
     """
     # --- group stage: fixed scores + sampled remaining ---
-    lam = np.array([( (T + dr_of(h, a) / B) / 2, (T - dr_of(h, a) / B) / 2 )
-                    for _, _, h, a in REMAINING])
-    gh = rng.poisson(np.maximum(0.15, lam[:, 0]))
-    ga = rng.poisson(np.maximum(0.15, lam[:, 1]))
+    # Once the group stage is complete REMAINING is empty; np.array([]) would be
+    # 1-D and lam[:, 0] would raise, so skip sampling entirely in that case.
     sampled = {}
-    for (idx, g, h, a) in REMAINING:
-        sampled[(h, a)] = (int(gh[idx]), int(ga[idx]))
+    if REMAINING:
+        lam = np.array([( (T + dr_of(h, a) / B) / 2, (T - dr_of(h, a) / B) / 2 )
+                        for _, _, h, a in REMAINING])
+        gh = rng.poisson(np.maximum(0.15, lam[:, 0]))
+        ga = rng.poisson(np.maximum(0.15, lam[:, 1]))
+        for (idx, g, h, a) in REMAINING:
+            sampled[(h, a)] = (int(gh[idx]), int(ga[idx]))
 
     winners, runners = {}, {}
     thirds = []   # (letter, team, stats)
