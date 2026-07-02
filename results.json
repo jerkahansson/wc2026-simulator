@@ -1,6 +1,6 @@
 {
   "_comment": "Final scores for played WC2026 matches. results[] = group stage keyed by fixture home/away; knockout[] carries the advancing winner. Auto-updated daily from the FIFA public API (api.fifa.com) by fetch_results.py.",
-  "updated": "2026-06-27",
+  "updated": "2026-07-02",
   "results": [
     {"home": "Mexico", "away": "South Africa", "status": "final", "score_home": 2, "score_away": 0, "date": "2026-06-11"},
     {"home": "Canada", "away": "Bosnia & Herzegovina", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-12"},
@@ -65,9 +65,26 @@
     {"home": "Senegal", "away": "Iraq", "status": "final", "score_home": 5, "score_away": 0, "date": "2026-06-26"},
     {"home": "Turkey", "away": "USA", "status": "final", "score_home": 3, "score_away": 2, "date": "2026-06-26"},
     {"home": "Cape Verde", "away": "Saudi Arabia", "status": "final", "score_home": 0, "score_away": 0, "date": "2026-06-27"},
+    {"home": "Colombia", "away": "Portugal", "status": "final", "score_home": 0, "score_away": 0, "date": "2026-06-27"},
+    {"home": "Croatia", "away": "Ghana", "status": "final", "score_home": 2, "score_away": 1, "date": "2026-06-27"},
+    {"home": "D.R. Congo", "away": "Uzbekistan", "status": "final", "score_home": 3, "score_away": 1, "date": "2026-06-27"},
     {"home": "Egypt", "away": "Iran", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-27"},
     {"home": "New Zealand", "away": "Belgium", "status": "final", "score_home": 1, "score_away": 5, "date": "2026-06-27"},
-    {"home": "Uruguay", "away": "Spain", "status": "final", "score_home": 0, "score_away": 1, "date": "2026-06-27"}
+    {"home": "Panama", "away": "England", "status": "final", "score_home": 0, "score_away": 2, "date": "2026-06-27"},
+    {"home": "Uruguay", "away": "Spain", "status": "final", "score_home": 0, "score_away": 1, "date": "2026-06-27"},
+    {"home": "Algeria", "away": "Austria", "status": "final", "score_home": 3, "score_away": 3, "date": "2026-06-28"},
+    {"home": "Jordan", "away": "Argentina", "status": "final", "score_home": 1, "score_away": 3, "date": "2026-06-28"}
   ],
-  "knockout": []
+  "knockout": [
+    {"round": "R32", "home": "South Africa", "away": "Canada", "score_home": 0, "score_away": 1, "winner": "Canada", "date": "2026-06-28"},
+    {"round": "R32", "home": "Brazil", "away": "Japan", "score_home": 2, "score_away": 1, "winner": "Brazil", "date": "2026-06-29"},
+    {"round": "R32", "home": "Germany", "away": "Paraguay", "score_home": 1, "score_away": 1, "winner": "Paraguay", "date": "2026-06-29"},
+    {"round": "R32", "home": "France", "away": "Sweden", "score_home": 3, "score_away": 0, "winner": "France", "date": "2026-06-30"},
+    {"round": "R32", "home": "Ivory Coast", "away": "Norway", "score_home": 1, "score_away": 2, "winner": "Norway", "date": "2026-06-30"},
+    {"round": "R32", "home": "Netherlands", "away": "Morocco", "score_home": 1, "score_away": 1, "winner": "Morocco", "date": "2026-06-30"},
+    {"round": "R32", "home": "Belgium", "away": "Senegal", "score_home": 3, "score_away": 2, "winner": "Belgium", "date": "2026-07-01"},
+    {"round": "R32", "home": "England", "away": "D.R. Congo", "score_home": 2, "score_away": 1, "winner": "England", "date": "2026-07-01"},
+    {"round": "R32", "home": "Mexico", "away": "Ecuador", "score_home": 2, "score_away": 0, "winner": "Mexico", "date": "2026-07-01"},
+    {"round": "R32", "home": "USA", "away": "Bosnia & Herzegovina", "score_home": 2, "score_away": 0, "winner": "USA", "date": "2026-07-02"}
+  ]
 }
