@@ -50,8 +50,9 @@ FINAL = {(r["home"], r["away"]): (r["score_home"], r["score_away"])
 # Single-elimination => any two teams meet at most once, so the pair is a unique
 # key (robust to which bracket slot they happen to meet in). Empty until the
 # knockout stage starts; populated by fetch_results.py from the FIFA API.
+_KO_PLAYED = _resdoc.get("knockout", [])   # raw records, incl. scores -- see build_history/build_bracket_payload
 KO_FINAL = {frozenset((r["home"], r["away"])): r["winner"]
-            for r in _resdoc.get("knockout", []) if r.get("winner")}
+            for r in _KO_PLAYED if r.get("winner")}
 
 # sanity: every team referenced in the fixtures has an Elo rating
 _teams = {t for _, _, h, a, *_ in MATCHES for t in (h, a)}
@@ -125,6 +126,11 @@ for g, md, h, a, *_ in MATCHES:
     if score is None:
         REMAINING.append((len(REMAINING), g, h, a))
 
+# The group stage finished for real on 2026-06-26. With REMAINING empty, group
+# standings/qualifiers can no longer vary sim to sim, so the Monte Carlo loop
+# only needs to replay the knockout bracket -- see _confirmed_group_outcome().
+GROUP_STAGE_OVER = not REMAINING
+
 
 def _rank_group(letter, results, rng):
     """Return teams ordered 1st..4th under FIFA 2026 tiebreakers, plus stats.
@@ -180,43 +186,71 @@ def _play_ko(a, b, rng):
     return (a, b) if rng.random() < pa else (b, a)
 
 
-def simulate_once(rng):
-    """Play out the remainder of the tournament once.
-
-    Returns (winners, runners, champ, r16, qf, sf, finalists) where the round
-    sets contain every team that *reached* that round.
-    """
-    # --- group stage: fixed scores + sampled remaining ---
-    # Once the group stage is complete REMAINING is empty; np.array([]) would be
-    # 1-D and lam[:, 0] would raise, so skip sampling entirely in that case.
-    sampled = {}
-    if REMAINING:
-        lam = np.array([( (T + dr_of(h, a) / B) / 2, (T - dr_of(h, a) / B) / 2 )
-                        for _, _, h, a in REMAINING])
-        gh = rng.poisson(np.maximum(0.15, lam[:, 0]))
-        ga = rng.poisson(np.maximum(0.15, lam[:, 1]))
-        for (idx, g, h, a) in REMAINING:
-            sampled[(h, a)] = (int(gh[idx]), int(ga[idx]))
+def _sample_group_stage(rng):
+    """Simulate the group stage once: fixed scores + sampled remaining fixtures
+    -> (winners, runners, third_team) per group. Only used pre-2026-06-26, while
+    REMAINING was non-empty; see _confirmed_group_outcome() for after."""
+    lam = np.array([((T + dr_of(h, a) / B) / 2, (T - dr_of(h, a) / B) / 2)
+                    for _, _, h, a in REMAINING])
+    gh = rng.poisson(np.maximum(0.15, lam[:, 0]))
+    ga = rng.poisson(np.maximum(0.15, lam[:, 1]))
+    sampled = {(h, a): (int(gh[idx]), int(ga[idx])) for (idx, g, h, a) in REMAINING}
 
     winners, runners = {}, {}
     thirds = []   # (letter, team, stats)
     for letter in bk.GROUP_LETTERS:
-        results = []
-        for (h, a, score) in GROUP_FIXTURES[letter]:
-            sh, sa = score if score is not None else sampled[(h, a)]
-            results.append((h, a, sh, sa))
+        results = [(h, a, *(score if score is not None else sampled[(h, a)]))
+                   for (h, a, score) in GROUP_FIXTURES[letter]]
         order, st = _rank_group(letter, results, rng)
         winners[letter] = order[0]
         runners[letter] = order[1]
         thirds.append((letter, order[2], st[order[2]]))
+    third_team = _best_eight_thirds(thirds, rng)
+    return winners, runners, third_team
 
-    # --- best 8 third-placed teams ---
-    thirds.sort(key=lambda x: (x[2]["pts"], x[2]["gd"], x[2]["gf"],
-                               ELO[x[1]], rng.random()), reverse=True)
-    best8 = thirds[:8]
-    qual_letters = sorted(l for l, _, _ in best8)
-    third_team = {l: t for l, t, _ in best8}
-    assign = bk.third_place_assignment(qual_letters)   # group letter per winner slot
+
+def _best_eight_thirds(thirds, rng):
+    """thirds: [(letter, team, stats), ...] for all 12 groups -> {letter: team}
+    for the 8 that advance (ranked by pts/GD/GF/Elo, lot draw as a last resort)."""
+    thirds = sorted(thirds, key=lambda x: (x[2]["pts"], x[2]["gd"], x[2]["gf"],
+                                           ELO[x[1]], rng.random()), reverse=True)
+    return {l: t for l, t, _ in thirds[:8]}
+
+
+def _confirmed_group_outcome():
+    """The group stage finished for real on 2026-06-26 (REMAINING is empty), so
+    winners/runners/thirds are fixed facts, not something to resample every
+    Monte-Carlo iteration. Compute them ONCE with the real final scores (the
+    same ranking logic _sample_group_stage used per-sim before)."""
+    rng = np.random.default_rng(0)   # only feeds the (practically unreachable) lot-draw tiebreak
+    winners, runners = {}, {}
+    thirds = []
+    for letter in bk.GROUP_LETTERS:
+        results = [(h, a, score[0], score[1]) for (h, a, score) in GROUP_FIXTURES[letter]]
+        order, st = _rank_group(letter, results, rng)
+        winners[letter] = order[0]
+        runners[letter] = order[1]
+        thirds.append((letter, order[2], st[order[2]]))
+    third_team = _best_eight_thirds(thirds, rng)
+    return winners, runners, third_team
+
+
+if GROUP_STAGE_OVER:
+    QUAL_WINNERS, QUAL_RUNNERS, QUAL_THIRD = _confirmed_group_outcome()
+    QUAL_ASSIGN = bk.third_place_assignment(sorted(QUAL_THIRD))
+
+
+def simulate_once(rng):
+    """Play out the remainder of the tournament once.
+
+    Returns (winners, runners, champ, qualifiers, r16, qf, sf, finalists, paths)
+    where the round sets contain every team that *reached* that round.
+    """
+    if GROUP_STAGE_OVER:
+        winners, runners, third_team, assign = QUAL_WINNERS, QUAL_RUNNERS, QUAL_THIRD, QUAL_ASSIGN
+    else:
+        winners, runners, third_team = _sample_group_stage(rng)
+        assign = bk.third_place_assignment(sorted(third_team))
 
     def third_for_slot(i):
         return third_team[assign[i]]
@@ -450,11 +484,92 @@ def build_conditional_tree(root, remaining_opp, n_sims):
     }
 
 
+def build_history(t, letter):
+    """Every match `t` has actually played: group stage (real fixed scores)
+    plus any knockout matches decided so far -- always real results.json data,
+    never the Monte-Carlo simulation. Powers the "Results so far" panel and
+    lets the tree/pie explorers fast-forward past already-decided matches
+    instead of replaying them as if they were still uncertain."""
+    hist = []
+    for (h, a, score) in GROUP_FIXTURES[letter]:
+        if score is None or t not in (h, a):
+            continue
+        sh, sa = score
+        my, opp_sc, opp = (sh, sa, a) if t == h else (sa, sh, h)
+        result = "W" if my > opp_sc else ("L" if my < opp_sc else "D")
+        hist.append({"stage": "Group", "opponent": opp, "teamScore": my,
+                     "oppScore": opp_sc, "result": result})
+    for m in _KO_PLAYED:
+        h, a = m["home"], m["away"]
+        if t not in (h, a) or not m.get("winner"):
+            continue
+        sh, sa = m["score_home"], m["score_away"]
+        my, opp_sc, opp = (sh, sa, a) if t == h else (sa, sh, h)
+        result = "W" if m["winner"] == t else "L"
+        hist.append({"stage": m["round"], "opponent": opp, "teamScore": my,
+                     "oppScore": opp_sc, "result": result})
+    return hist
+
+
+def build_bracket_payload():
+    """The global (not per-team) knockout draw: every one of the 32 R32-to-Final
+    matches, with participants filled in wherever the REAL group/knockout
+    results (never the simulation) already determine them, plus scores/winner
+    for matches already played. A slot that isn't determined yet carries a
+    `hint` -- the two teams who could still fill it, one round back -- so the
+    UI can show "TeamA or TeamB" instead of a bare TBD."""
+    if not GROUP_STAGE_OVER:
+        return []   # bracket draw isn't fixed until qualifiers are (see README)
+    ko_by_pair = {frozenset((m["home"], m["away"])): m for m in _KO_PLAYED}
+    win, matchup = {}, {}
+
+    def resolve(tok):
+        if tok[0] == "W" and tok[1] in bk.GROUPS:
+            return QUAL_WINNERS[tok[1]]
+        if tok[0] == "R" and tok[1] in bk.GROUPS:
+            return QUAL_RUNNERS[tok[1]]
+        if tok[0] == "T":
+            return QUAL_THIRD[QUAL_ASSIGN[int(tok[1:])]]
+        if tok[-1] == "W":
+            return win.get(int(tok[:-1]))
+        return None   # "<n>L" (3rd-place feed) -- not needed since 3P isn't shown
+
+    def feed_no(tok):
+        return int(tok[:-1]) if tok[-1] in ("W", "L") and tok[:-1].isdigit() else None
+
+    def hint(tok):
+        n = feed_no(tok)
+        pair = matchup.get(n) if n is not None else None
+        return f"{pair[0]} or {pair[1]}" if pair and tok[-1] == "W" else None
+
+    matches = []
+    for n in sorted(bk.KO_MATCHES):
+        sa, sb = bk.KO_MATCHES[n]
+        ta, tb = resolve(sa), resolve(sb)
+        entry = {
+            "no": n, "round": bk.ROUND_OF[n], "teamA": ta, "teamB": tb,
+            "hintA": None if ta else hint(sa), "hintB": None if tb else hint(sb),
+            "scoreA": None, "scoreB": None, "winner": None,
+            "feedsFrom": [feed_no(sa), feed_no(sb)],
+        }
+        if ta and tb:
+            matchup[n] = (ta, tb)
+            m = ko_by_pair.get(frozenset((ta, tb)))
+            if m and m.get("winner"):
+                home_is_a = m["home"] == ta
+                entry["scoreA"] = m["score_home"] if home_is_a else m["score_away"]
+                entry["scoreB"] = m["score_away"] if home_is_a else m["score_home"]
+                entry["winner"] = m["winner"]
+                win[n] = m["winner"]
+        matches.append(entry)
+    return matches
+
+
 def build_rich_payload(out, agg, group, n_sims):
     """Assemble the path-explorer data contract (marginal shape, handoff §6a):
-    per team a reach block, real group standings, championProb/predictedFinish,
+    per team a reach block, match history, championProb/predictedFinish,
     and rounds[] of opponent face/beat distributions."""
-    standings, remaining, stage = group_standings()
+    _, remaining, _ = group_standings()
     reachc, face, winc, trie = agg["reachc"], agg["face"], agg["winc"], agg["trie"]
     teams = {}
     for t, d in out.items():
@@ -473,8 +588,6 @@ def build_rich_payload(out, agg, group, n_sims):
                         "beatProb": round(winc[t][lab][opp] / fc, 5) if fc else 0.0,
                     })
             rounds.append({"round": lab, "opponents": opps})
-        std = [{**s, **({"self": True} if s["name"] == t else {})}
-               for s in standings[letter]]
         teams[t] = {
             **out[t],
             "group": letter,
@@ -482,12 +595,7 @@ def build_rich_payload(out, agg, group, n_sims):
             "predictedFinish": predicted_finish(d),
             "reach": {"advance": d["advance"], "r16": d["r16"], "qf": d["qf"],
                       "sf": d["sf"], "final": d["final"], "champion": d["winner"]},
-            "groupBlock": {
-                "name": f"Group {letter}",
-                "stageLabel": stage[letter],
-                "remainingOpponent": remaining.get(t),
-                "standings": std,
-            },
+            "history": build_history(t, letter),
             "rounds": rounds,
             "tree": build_conditional_tree(trie[t], remaining.get(t), n_sims),
         }
@@ -506,6 +614,7 @@ def main():
         "updated": _json_today(),
         "n_sims": n_sims,
         "calibration": {"B": B, "T": T, "mae": round(mae, 4)},
+        "bracket": build_bracket_payload(),
         "teams": build_rich_payload(out, agg, group, n_sims),
     }
     with open(os.path.join(DIR, "sim_results.json"), "w", encoding="utf-8") as f:

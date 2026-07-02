@@ -9,9 +9,11 @@ they face, and how do those odds shift as you walk down a scenario?**
 Mirror: <https://jerkahansson.github.io/wc2026-simulator/> (GitHub Pages)
 Built as a single self-contained `index.html`.
 
-Two views over a shared stats panel:
+Three views over a shared stats panel:
 1. **Decision tree** — a branching probability tree (node size = probability).
 2. **Pie explorer** — one radial match node you drill into, one round at a time.
+3. **Bracket** — the full 32-team knockout draw, with the selected team's matches
+   highlighted and played results filled in.
 
 ## How the numbers are produced
 
@@ -26,15 +28,23 @@ bracket.py ────────┘
   `fetch_elo.py`).
 - **Match model** = Elo difference → expected-goal supremacy → Poisson scorelines.
   The `(B, T)` constants are calibrated once against de-vigged market odds.
-- **As-of-today**: played results in `results.json` are fixed; only the remaining
-  group games + the whole knockout bracket are simulated (`bracket.py` wires the
-  official FIFA bracket and best-third logic). `results.json` is auto-filled by
-  `fetch_results.py` from the official FIFA API — group scores **and** played knockout
-  winners, which are pinned so eliminated teams stop being re-simulated as champions.
-- **Monte Carlo**: replay the tournament N times (default 500 000), aggregate per-team
-  round-reach frequencies **and** per-round opponent distributions.
+- **As-of-today**: played results in `results.json` are fixed. The group stage
+  finished for real on 2026-06-26, so `simulate.py` computes winners/runners/best-
+  thirds **once** (`_confirmed_group_outcome()`, `bracket.py` wires the official
+  FIFA bracket and best-third logic) instead of resampling them every iteration —
+  only the still-open part of the knockout bracket is actually simulated.
+  `results.json` is auto-filled by `fetch_results.py` from the official FIFA API —
+  group scores **and** played knockout winners, which are pinned so eliminated
+  teams stop being re-simulated as champions.
+- **Monte Carlo**: replay the knockout bracket N times (default 200 000), aggregate
+  per-team round-reach frequencies **and** per-round opponent distributions.
 
 ### Data contract (`sim_results.json`)
+
+Top-level `bracket[]`: the full 32-team knockout draw (every R32-to-Final match),
+with participants filled in from the real group/knockout results wherever they're
+already determined, scores/winner once a match has been played, and a `hint`
+("TeamA or TeamB") for slots that aren't decided yet — powers the Bracket view.
 
 Per team (the *marginal* shape from the design handoff §6a):
 
@@ -42,9 +52,15 @@ Per team (the *marginal* shape from the design handoff §6a):
 |---|---|
 | `reach` | P(reach advance / R16 / QF / SF / Final / champion) |
 | `championProb`, `predictedFinish` | headline number + most-likely finish (deepest round with P≥0.5) |
-| `groupBlock` | real current group standings (Pld/GD/Pts) + remaining group opponent |
+| `history[]` | every match the team has actually played (group + knockout), with the real score |
 | `rounds[]` | per-round *marginal* opponent list (`faceProb`/`beatProb`) — kept for reference |
 | `tree` | the **conditional** knockout tree (handoff §6b): a recursive node per match with `condProb`, `reachProb`, `beatProb`, and its true conditional next-round opponents |
+
+A team's elimination status isn't a separate field — it's read off the tree: a
+chain of `condProb≈1` nodes (the *only* possible next opponent) is real, decided
+history, not a simulated guess. Walking it to a `beatProb≈0`/`≈1` pin (or to
+`reach.advance === 0` for a group exit) tells the UI where/whether a team is out,
+letting the tree/pie explorers fast-forward straight to the live frontier match.
 
 The decision tree, pie explorer, and left-panel opponents are all driven by the
 **conditional `tree`** — so deeper branches show the real bracket geography (which R16
@@ -57,7 +73,8 @@ sim). In the UI, each node's **number and size are its probability given the par
 the current root shows no number. Thin deep branches (few simulations behind them) are
 flagged with a trailing `*` — their percentages are statistically noisy, indicative only.
 
-Default `n_sims` is **500 000** (~3 min). More sims make the displayed conditional
+Default `n_sims` is **200 000** (~35 sec, now that the group stage no longer needs
+resampling every iteration — see above). More sims make the displayed conditional
 percentages more *stable* (deeper nodes get more samples); they don't change the prune rule.
 
 ## Rebuild
@@ -65,7 +82,7 @@ percentages more *stable* (deeper nodes get more samples); they don't change the
 ```bash
 python fetch_elo.py        # refresh elo_ratings.json from eloratings.net
 python fetch_results.py    # refresh results.json from the FIFA API
-python simulate.py 500000  # writes sim_results.json (default 500k; ~3 min)
+python simulate.py 200000  # writes sim_results.json (default 200k; ~35 sec)
 python build_site.py       # writes index.html
 python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracket, invariants)
 ```
@@ -76,7 +93,7 @@ python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracke
 Stockholm)** — and on demand from the Actions tab (**Run workflow**). It:
 1. fetches current Elo (`fetch_elo.py`),
 2. fetches finished scores + knockout winners (`fetch_results.py`),
-3. re-runs `simulate.py 500000` + `build_site.py`,
+3. re-runs `simulate.py 200000` + `build_site.py`,
 4. runs `verify_sim.py` as a green-gate, then commits & pushes to `main`
    → Cloudflare Pages auto-deploys.
 

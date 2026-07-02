@@ -166,6 +166,14 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   // ===================== labels / formatting =====================
   const ROUNDS = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
   const RSHORT = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
+  // Two vocabularies feed this map: the conditional tree uses "Final" (long
+  // form, from simulate.py's ROUND_SEQ); raw results/bracket data use "F"
+  // (short form, from bracket.py's ROUND_OF) -- both keys map to the same text.
+  const ROUND_FULL = {
+    Group: 'Group stage', R32: 'Round of 32', R16: 'Round of 16',
+    QF: 'Quarter-final', SF: 'Semi-final', '3P': 'Third-place play-off',
+    Final: 'Final', F: 'Final'
+  };
 
   function pct(p) {
     const v = p * 100;
@@ -185,12 +193,37 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   }
   function star(reachP) { return lowConf(reachP) ? '*' : ''; }
 
+  // ===================== elimination status =====================
+  // The group stage is over, so a team's fate up to its next unplayed match is
+  // either a real, decided fact (a played result) or a single certain opponent
+  // waiting to be played -- never a simulated guess. Both are visible in the
+  // conditional tree as a chain of condProb===1 nodes (the ONLY possible next
+  // opponent); a pinned result additionally has beatProb 0 or 1 exactly (every
+  // one of the 200k sims agrees). Walking that chain tells us, with zero extra
+  // backend data, whether/where/to whom a team has already been eliminated.
+  function eliminationInfo(team) {
+    if (team.reach.advance <= 0) return { eliminated: true, round: 'Group', opponent: null };
+    let node = team.tree;
+    while (node.children && node.children.length) {
+      const c = node.children.find(k => k.condProb >= 0.999);
+      if (!c) return { eliminated: false };                 // >1 live opponent -> still open
+      if (c.beatProb <= 0.001) return { eliminated: true, round: c.round, opponent: c.opponent };
+      if (c.beatProb >= 0.999) { node = c; continue; }       // pinned win -> keep walking
+      return { eliminated: false };                          // confirmed opponent, unplayed
+    }
+    return { eliminated: false };
+  }
+
   // ===================== state =====================
   const teamNames = Object.keys(DATA.teams).sort();
+  const aliveTeamsInit = teamNames.filter(t => !eliminationInfo(DATA.teams[t]).eliminated);
+  const defaultTeam = aliveTeamsInit.length
+    ? aliveTeamsInit.slice().sort((a, b) => DATA.teams[b].championProb - DATA.teams[a].championProb)[0]
+    : teamNames[0];
   const state = {
     scale: 1,
     view: 'tree',
-    country: DATA.teams.Sweden ? 'Sweden' : teamNames[0],
+    country: defaultTeam,
     navKey: 0,
     treeRoot: null,   // set by resetPaths()
     piePath: null
@@ -211,12 +244,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       advance: reachObj.advance,
       reach,
       tree: team.tree,        // conditional knockout tree (the real branching)
-      champion: reachObj.champion,
-      remainingOpponent: team.groupBlock ? team.groupBlock.remainingOpponent : null,
-      groupName: team.groupBlock ? team.groupBlock.name : null,
-      // When the group stage is over (remainingOpponent == null) we root the
-      // tree/pie at the first knockout round instead of a group decider.
-      hasGroupDecider: !!(team.groupBlock && team.groupBlock.remainingOpponent)
+      champion: reachObj.champion
     };
   }
 
@@ -307,30 +335,41 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
   function nodeLabel(node, M) {
     if (node.round === -1) return { tag: 'KNOCKOUTS', name: 'Round of 32' };
-    if (node.round === 0) return { tag: 'GROUP', name: 'vs ' + (M.remainingOpponent || '?') };
     if (node.round === 6) return { tag: 'CHAMPION', name: '★' };
     if (node.round === 99) return { tag: 'OUT', name: 'Eliminated' };
     return { tag: RSHORT[node.round - 1], name: 'vs ' + node.opp.name };
   }
 
-  // The root state for a fresh path: group decider if one remains, else first
-  // knockout round ("Knockouts").  round:0 = group; round:-1 = knockout root.
-  function rootState(M) {
-    if (M.hasGroupDecider) return { round: 0, opp: { name: M.remainingOpponent, elo: null } };
-    return { round: -1, opp: null }; // synthetic "Knockouts" root
-  }
-
-  // childrenOf already handles both the group decider (round 0) and the knockout
-  // root (round -1) via nodeAtPath, so this is just a stable alias.
+  // childrenOf already handles the synthetic knockout root (round -1) via
+  // nodeAtPath, so this is just a stable alias.
   function childrenOfRoot(path, M) {
     return childrenOf(path, M);
   }
 
+  // Fast-forward past every match that's already been decided for real (see
+  // eliminationInfo for why the condProb/beatProb chain is a reliable signal),
+  // so exploration starts at the live frontier instead of replaying history.
+  // A group-eliminated team gets a short-circuit straight to the OUT leaf.
+  function confirmedPath(M) {
+    const path = [{ round: -1, opp: null }];
+    if (M.team.reach.advance <= 0) return path.concat([{ round: 99, opp: null }]);
+    let node = M.tree;
+    while (node.children && node.children.length) {
+      const c = node.children.find(k => k.condProb >= 0.999);
+      if (!c) break;                                             // >1 live opponent -> this is the frontier
+      path.push({ round: roundNum(c.round), opp: { name: c.opponent, elo: c.elo } });
+      if (c.beatProb <= 0.001) break;                             // pinned loss -> eliminated here
+      if (c.beatProb >= 0.999) { node = c; continue; }            // pinned win -> keep fast-forwarding
+      break;                                                      // confirmed opponent, unplayed -> frontier
+    }
+    return path;
+  }
+
   function resetPaths() {
     const M = model();
-    const r = rootState(M);
-    state.treeRoot = [r];
-    state.piePath = [r];
+    const p = confirmedPath(M);
+    state.treeRoot = p;
+    state.piePath = p;
   }
 
   // ===================== navigation =====================
@@ -342,6 +381,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   function onCountryChange(v) { state.country = v; resetPaths(); bump(); }
   function showTree() { bump({ view: 'tree' }); }
   function showPie() { bump({ view: 'pie' }); }
+  function showBracket() { bump({ view: 'bracket' }); }
   function reset() { resetPaths(); bump(); }
   function rerootTree(path) { bump({ treeRoot: path }); }
   function drillPie(path) { bump({ piePath: path }); }
@@ -382,8 +422,13 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       })()
     ]);
 
-    const selectEl = el('select', { class: 'team-select', onchange: function (e) { onCountryChange(e.target.value); } },
-      teamNames.map(t => el('option', { value: t, text: t, selected: t === st.country ? 'selected' : null })));
+    const aliveTeams = teamNames.filter(t => !eliminationInfo(DATA.teams[t]).eliminated);
+    const eliminatedTeams = teamNames.filter(t => eliminationInfo(DATA.teams[t]).eliminated);
+    const opt = t => el('option', { value: t, text: t, selected: t === st.country ? 'selected' : null });
+    const selectEl = el('select', { class: 'team-select', onchange: function (e) { onCountryChange(e.target.value); } }, [
+      el('optgroup', { label: 'Still in the tournament' }, aliveTeams.map(opt)),
+      el('optgroup', { label: 'Eliminated' }, eliminatedTeams.map(opt))
+    ]);
 
     const seg = (label, on, handler) => el('button', {
       onclick: handler,
@@ -400,7 +445,8 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       ]),
       el('div', { class: 'seg-group' }, [
         seg('Decision tree', st.view === 'tree', showTree),
-        seg('Pie explorer', st.view === 'pie', showPie)
+        seg('Pie explorer', st.view === 'pie', showPie),
+        seg('Bracket', st.view === 'bracket', showBracket)
       ]),
       el('button', { class: 'reset-btn', onclick: reset, text: 'Reset' })
     ]);
@@ -411,8 +457,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     const body = el('div', { class: 'body' });
     app.appendChild(body);
 
-    // active path depends on view
-    const activePath = st.view === 'tree' ? st.treeRoot : st.piePath;
+    // active path depends on view (the bracket is a static global view, not a
+    // drilldown, so it just reuses the tree's frontier for the left panel).
+    const activePath = st.view === 'pie' ? st.piePath : st.treeRoot;
     const activeLast = activePath[activePath.length - 1];
     const focusRound = activeLast.round;
 
@@ -421,7 +468,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     // ---------- stage ----------
     const stageHint = st.view === 'tree'
       ? 'Each node: green/red ring = chance to win that game · number & size = how likely this matchup is, given the previous one · click a node to make it the root'
-      : 'The pie shows how this match resolves · click a team slice to follow that path into the next round';
+      : st.view === 'pie'
+      ? 'The pie shows how this match resolves · click a team slice to follow that path into the next round'
+      : 'The full knockout draw · gold border = ' + st.country + '’s matches · scores show once a match has been played';
 
     const stageArea = el('div', { 'data-stagearea': '1', class: 'stagearea' });
     const wrap = el('div', { style: { position: 'relative', width: '1150px', height: '540px', flex: '0 0 auto', zoom: st.scale } });
@@ -436,7 +485,8 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     stageArea.appendChild(wrap);
 
     if (st.view === 'tree') buildTree(anim, wrap, M, st);
-    else buildPie(anim, wrap, M, st, activePath, activeLast);
+    else if (st.view === 'pie') buildPie(anim, wrap, M, st, activePath, activeLast);
+    else buildBracket(anim, st);
 
     const right = el('div', { style: { flex: '1 1 auto', minWidth: '0', display: 'flex', flexDirection: 'column' } }, [
       el('div', { class: 'stage-hint', text: stageHint }),
@@ -454,10 +504,15 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 
     // headline card
     let predictedLabel;
-    const finish = team.predictedFinish;
-    if (finish === 'Group stage') predictedLabel = 'Most likely: out in the group stage';
-    else if (finish === 'Champion') predictedLabel = 'Most likely: ' + st.country + ' lift the trophy';
-    else predictedLabel = 'Most likely finish: ' + finish;
+    const elim = eliminationInfo(team);
+    if (elim.eliminated) {
+      predictedLabel = elim.round === 'Group'
+        ? st.country + ' were eliminated in the group stage.'
+        : st.country + ' were eliminated in the ' + ROUND_FULL[elim.round] + ' — lost to ' + elim.opponent + '.';
+    } else {
+      const finish = team.predictedFinish;
+      predictedLabel = finish === 'Champion' ? 'Most likely: ' + st.country + ' lift the trophy' : 'Most likely finish: ' + finish;
+    }
 
     const headline = el('div', { class: 'headline-card' }, [
       el('div', { class: 'headline-eyebrow', text: st.country + ' win the World Cup' }),
@@ -483,7 +538,11 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       bars
     ]);
 
-    // context section (group standings OR round opponents)
+    // real results so far (group + any played knockout matches)
+    const historySection = buildHistorySection(team);
+
+    // context section: possible next opponents, champion/eliminated message,
+    // or (round -1 only) a placeholder for the bare knockout root
     const ctx = el('div', { style: { flex: '1 1 auto' } });
     if (focusRound >= 1 && focusRound <= 5) {
       // CONDITIONAL: who could they face NEXT, given the path drilled so far.
@@ -512,7 +571,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
           el('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, opps)
         ]));
       } else {
-        const msg = focusRound === 5
+        const msg = winP <= 0.001
+          ? st.country + ' lost this one — see Results so far for the score.'
+          : focusRound === 5
           ? 'Win the final to lift the trophy — ' + pct(winP) + ' from here.'
           : 'Deeper paths fall below the 0.5% cutoff at this sample size.';
         ctx.appendChild(el('div', {}, [
@@ -525,48 +586,25 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: 'Champions of the world' }),
         el('div', { style: { fontSize: '12px', color: '#9fb4d6' }, text: st.country + ' have won the World Cup in this scenario.' })
       ]));
-    } else {
-      // group standings (focus = group decider or knockout root)
-      const gb = team.groupBlock || { name: '', standings: [] };
-      const standings = (gb.standings || []).map(s => {
-        const self = !!s.self;
-        const gdStr = (s.gd > 0 ? '+' : '') + s.gd;
-        return el('div', {
-          style: {
-            display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 11px', borderRadius: '9px',
-            background: self ? 'rgba(254,204,0,.08)' : 'rgba(140,175,225,.04)',
-            border: self ? '1px solid rgba(254,204,0,.3)' : '1px solid rgba(140,175,225,.09)'
-          }
-        }, [
-          el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: self ? '#FECC00' : oppColor(s.name), flex: '0 0 auto' } }),
-          el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: self ? '700' : '500', color: self ? '#FECC00' : '#cfe0f5' }, text: s.name }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#8ba3c7', width: '14px', textAlign: 'center' }, text: String(s.pld) }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#8ba3c7', width: '24px', textAlign: 'center' }, text: gdStr }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '13px', fontWeight: '700', color: self ? '#FECC00' : '#cfe0f5', width: '16px', textAlign: 'right' }, text: String(s.pts) })
-        ]);
-      });
-      const header = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '11px' } }, [
-        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em' }, text: (gb.name || 'Group') + (gb.stageLabel ? ' · ' + gb.stageLabel : '') }),
-        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', color: '#9fb4d6', letterSpacing: '.08em' }, text: 'Pld GD Pts' })
-      ]);
-      const sentence = M.hasGroupDecider
-        ? el('div', { style: { marginTop: '11px', fontSize: '12px', color: '#9fb4d6', lineHeight: '1.5' } }, [
-            'Final group game: ',
-            el('span', { style: { color: '#eaf1fb', fontWeight: '600' }, text: st.country + ' vs ' + M.remainingOpponent + '.' }),
-            ' The result sets where ' + st.country + ' lands in the bracket.'
-          ])
-        : el('div', { style: { marginTop: '11px', fontSize: '12px', color: '#9fb4d6', lineHeight: '1.5' }, text: 'Group stage complete — exploring from the knockout bracket.' });
+    } else if (focusRound === 99) {
       ctx.appendChild(el('div', {}, [
-        header,
-        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } }, standings),
-        sentence
+        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: 'Eliminated' }),
+        el('div', { style: { fontSize: '12px', color: '#9fb4d6' }, text: 'See Results so far for the full run.' })
+      ]));
+    } else {
+      // round === -1: only reachable by manually navigating back to the
+      // synthetic knockout root (a qualified team's real frontier always has
+      // a concrete round 1-5 node, so there's nothing more specific to show).
+      ctx.appendChild(el('div', {}, [
+        el('div', { class: 'section-eyebrow', style: { letterSpacing: '.2em', marginBottom: '4px' }, text: 'Knockout bracket' }),
+        el('div', { style: { fontSize: '12px', color: '#9fb4d6' }, text: 'Click into the bracket to explore ' + st.country + ' possible paths.' })
       ]));
     }
 
     // breadcrumb (path so far)
     const setActive = st.view === 'tree' ? rerootTree : drillPie;
     const crumbs = activePath.map((s, i) => {
-      const lab = s.round === -1 ? 'Knockouts' : s.round === 0 ? (M.remainingOpponent || 'Group') : s.round === 6 ? '★ Champions' : s.opp.name;
+      const lab = s.round === -1 ? 'Knockouts' : s.round === 6 ? '★ Champions' : s.round === 99 ? 'Eliminated' : s.opp.name;
       const last = i === activePath.length - 1;
       return el('button', {
         class: 'crumb',
@@ -592,7 +630,43 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
       text: 'Based on ' + Number(DATA.n_sims).toLocaleString() + ' Monte-Carlo simulations · updated ' + (DATA.updated || '')
         + ' · * = few simulations reached this branch (indicative only)'
     });
-    return el('div', { class: 'leftpanel' }, [headline, barsSection, ctx, crumbSection, simNote]);
+    return el('div', { class: 'leftpanel' }, [headline, barsSection, historySection, ctx, crumbSection, simNote].filter(Boolean));
+  }
+
+  // Real results so far: group matches + any played knockout matches, in
+  // chronological order, straight from results.json (never the simulation).
+  function buildHistorySection(team) {
+    const hist = team.history || [];
+    if (!hist.length) return null;
+    const rows = hist.map(h => {
+      const badge = h.result === 'W' ? '#2ea043' : h.result === 'L' ? '#c0392b' : '#7b96bf';
+      return el('div', {
+        style: {
+          display: 'flex', alignItems: 'center', gap: '9px', padding: '7px 11px', borderRadius: '9px',
+          background: 'rgba(140,175,225,.04)', border: '1px solid rgba(140,175,225,.09)'
+        }
+      }, [
+        el('div', {
+          style: {
+            width: '19px', height: '19px', borderRadius: '50%', background: badge, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto',
+            fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', fontWeight: '700'
+          }, text: h.result
+        }),
+        el('div', {
+          style: {
+            flex: '0 0 64px', fontFamily: "'IBM Plex Mono',monospace", fontSize: '9px', color: '#7b96bf',
+            textTransform: 'uppercase', letterSpacing: '.05em'
+          }, text: ROUND_FULL[h.stage] || h.stage
+        }),
+        el('div', { style: { flex: '1 1 auto', fontSize: '13px', fontWeight: '600', color: '#eaf1fb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: 'vs ' + h.opponent }),
+        el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontSize: '12px', color: '#cfe0f5', fontWeight: '700' }, text: h.teamScore + '–' + h.oppScore })
+      ]);
+    });
+    return el('div', {}, [
+      el('div', { class: 'section-eyebrow', style: { marginBottom: '10px' }, text: 'Results so far' }),
+      el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } }, rows)
+    ]);
   }
 
   // ---------- DECISION TREE ----------
@@ -673,7 +747,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
         }, [
           el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.05em', opacity: '.85', fontSize: (gold ? 12 : 8) + 'px' }, text: gold ? '★' : 'OUT' }),
           el('div', { style: { fontWeight: '700', lineHeight: '1', fontSize: (gold ? 0 : 9) + 'px', marginTop: '1px', display: gold ? 'none' : 'block' }, text: gold ? 'Champions' : (n.label || 'Out') }),
-          el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: '11px', marginTop: '2px' }, text: pct(n.condParent || 0) })
+          n.condParent != null
+            ? el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", fontWeight: '600', opacity: '.9', fontSize: '11px', marginTop: '2px' }, text: pct(n.condParent) })
+            : null
         ]);
         anim.appendChild(node);
       } else {
@@ -853,6 +929,105 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     if (st.piePath.length > 1) {
       addBackButton(wrap, M, st.piePath, cx, cy - Rpx - 50, function () { drillPie(st.piePath.slice(0, -1)); });
     }
+  }
+
+  // ---------- BRACKET ----------
+  // The full 32-team knockout draw (R32 -> Final), a global static view (not a
+  // drilldown). Row (y) position is computed bottom-up the same way the tree
+  // does: R32 matches get sequential slots, every later match's slot is the
+  // average of the two matches that feed it (DATA.bracket[].feedsFrom).
+  const BRACKET_ROUNDS = ['R32', 'R16', 'QF', 'SF', 'F'];
+
+  function buildBracket(anim, st) {
+    const byNo = {};
+    DATA.bracket.forEach(m => { byNo[m.no] = m; });
+    const rounds = BRACKET_ROUNDS.map(r => DATA.bracket.filter(m => m.round === r).sort((a, b) => a.no - b.no));
+
+    const H = 540, colW = 224, HEADER_H = 26;
+    const slot = {};
+    let leafCount = 0;
+    function slotOf(m) {
+      if (slot[m.no] != null) return slot[m.no];
+      const feeds = m.feedsFrom.filter(n => n != null).map(n => byNo[n]).filter(Boolean);
+      slot[m.no] = feeds.length ? feeds.reduce((sum, f) => sum + slotOf(f), 0) / feeds.length : leafCount++;
+      return slot[m.no];
+    }
+    DATA.bracket.forEach(slotOf);
+
+    // Fit ALL leaf rows (16, fixed) inside the stage's fixed height exactly —
+    // .stagearea clips overflow, so the card height must shrink to the grid,
+    // not the other way around.
+    const rowH = (H - HEADER_H) / Math.max(leafCount, 1);
+    const cardH = Math.max(20, rowH - 5);
+    const xFor = ri => 16 + ri * colW;
+    const yFor = m => HEADER_H + slot[m.no] * rowH + rowH / 2;
+    const pos = {};
+    rounds.forEach((ms, ri) => ms.forEach(m => { pos[m.no] = { x: xFor(ri), y: yFor(m) }; }));
+
+    // connector lines: each match -> its (up to two) feeder matches
+    DATA.bracket.forEach(m => {
+      const p = pos[m.no]; if (!p) return;
+      m.feedsFrom.forEach(n => {
+        if (n == null || !pos[n]) return;
+        const q = pos[n];
+        const dx = p.x - q.x, dy = p.y - q.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+        anim.appendChild(el('div', {
+          style: {
+            position: 'absolute', left: q.x + 'px', top: q.y + 'px', width: len + 'px', height: '1.5px',
+            transformOrigin: '0 50%', transform: 'rotate(' + ang + 'deg)', background: 'rgba(120,165,220,.35)', zIndex: 1
+          }
+        }));
+      });
+    });
+
+    // round headers
+    rounds.forEach((ms, ri) => {
+      if (!ms.length) return;
+      anim.appendChild(el('div', {
+        style: {
+          position: 'absolute', left: xFor(ri) + 'px', top: '0px', width: (colW - 34) + 'px',
+          fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', letterSpacing: '.14em',
+          color: '#7b96bf', textTransform: 'uppercase'
+        }, text: ROUND_FULL[BRACKET_ROUNDS[ri]]
+      }));
+    });
+
+    // match cards — row height is half of cardH (two rows per card), so both
+    // padding and font shrink with it to stay legible without overflowing.
+    const rowPx = cardH / 2;
+    const fontPx = Math.max(8, Math.min(11, rowPx * 0.42));
+    const padY = Math.max(0, (rowPx - fontPx) / 2 - 1);
+    const row = (name, score, isWinner, hint, isMe) => el('div', {
+      style: {
+        display: 'flex', alignItems: 'center', gap: '5px', padding: padY + 'px 7px', fontSize: fontPx + 'px',
+        lineHeight: '1.1', fontWeight: isWinner ? '700' : '500',
+        color: isWinner ? '#eaf1fb' : (name ? '#9fb4d6' : '#5c7093'),
+        background: isMe ? 'rgba(254,204,0,.14)' : 'transparent'
+      }
+    }, [
+      el('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: name ? oppColor(name) : 'transparent', flex: '0 0 auto' } }),
+      el('div', { style: { flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, text: name || hint || 'TBD' }),
+      el('div', { style: { fontFamily: "'IBM Plex Mono',monospace", flex: '0 0 auto' }, text: score != null ? String(score) : '' })
+    ]);
+
+    DATA.bracket.forEach(m => {
+      const p = pos[m.no]; if (!p) return;
+      const involvesTeam = m.teamA === st.country || m.teamB === st.country;
+      const card = el('div', {
+        title: ROUND_FULL[m.round] + (m.teamA && m.teamB ? ': ' + m.teamA + ' vs ' + m.teamB : ''),
+        style: {
+          position: 'absolute', left: p.x + 'px', top: (p.y - cardH) + 'px', width: (colW - 34) + 'px',
+          borderRadius: '8px', overflow: 'hidden', background: '#0e2044',
+          border: '1px solid ' + (involvesTeam ? 'rgba(254,204,0,.55)' : 'rgba(140,175,225,.16)'),
+          boxShadow: involvesTeam ? '0 0 14px rgba(254,204,0,.25)' : 'none', zIndex: 3
+        }
+      }, [
+        row(m.teamA, m.scoreA, m.winner === m.teamA, m.hintA, m.teamA === st.country),
+        el('div', { style: { height: '1px', background: 'rgba(140,175,225,.14)' } }),
+        row(m.teamB, m.scoreB, m.winner === m.teamB, m.hintB, m.teamB === st.country)
+      ]);
+      anim.appendChild(card);
+    });
   }
 
   // gold "Back to {parent}" button
