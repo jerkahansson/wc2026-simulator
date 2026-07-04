@@ -357,8 +357,8 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     while (node.children && node.children.length) {
       const c = node.children.find(k => k.condProb >= 0.999);
       if (!c) break;                                             // >1 live opponent -> this is the frontier
+      if (c.beatProb <= 0.001) { path.push({ round: 99, opp: null }); break; }  // pinned loss -> eliminated here, don't leave the lost match as the frontier
       path.push({ round: roundNum(c.round), opp: { name: c.opponent, elo: c.elo } });
-      if (c.beatProb <= 0.001) break;                             // pinned loss -> eliminated here
       if (c.beatProb >= 0.999) { node = c; continue; }            // pinned win -> keep fast-forwarding
       break;                                                      // confirmed opponent, unplayed -> frontier
     }
