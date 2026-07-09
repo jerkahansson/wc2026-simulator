@@ -19,13 +19,25 @@ Three views over a shared stats panel:
 
 ```
 elo_ratings.json ──┐
+market_odds.json ──┤
 results.json ──────┼──> simulate.py ──> sim_results.json ──> build_site.py ──> index.html
 copabet_picks.py ──┘     (Monte Carlo)      (data contract)      (static site)
 bracket.py ────────┘
 ```
 
-- **Strength** = World Football Elo (`elo_ratings.json`, from eloratings.net via
-  `fetch_elo.py`).
+- **Strength** = **market-implied ratings** fitted to the Polymarket outright
+  champion prices (`market_odds.json`, from the free Gamma API via
+  `fetch_market.py`), with World Football Elo (`elo_ratings.json`, from
+  eloratings.net via `fetch_elo.py`) as the automatic fallback. The market only
+  quotes champion prices — never hypothetical pairings — so `simulate.py`
+  solves the inverse problem: find the rating vector that, pushed through the
+  exact knockout-bracket enumeration, reproduces the market's champion
+  probabilities (k prices summing to 1 vs k ratings where only differences
+  matter → exactly identified, unique solution). Every conditional branch in
+  the tree is then consistent with what the market believes. Falls back to
+  pure Elo whenever `market_odds.json` is missing, stale (>36 h), or doesn't
+  cover the still-alive teams; the payload records which mode was used in
+  `ratings_source`, and the site footer shows it.
 - **Match model** = Elo difference → expected-goal supremacy → Poisson scorelines.
   The `(B, T)` constants are calibrated once against de-vigged market odds.
 - **As-of-today**: played results in `results.json` are fixed. The group stage
@@ -82,9 +94,10 @@ percentages more *stable* (deeper nodes get more samples); they don't change the
 ```bash
 python fetch_elo.py        # refresh elo_ratings.json from eloratings.net
 python fetch_results.py    # refresh results.json from the FIFA API
+python fetch_market.py     # refresh market_odds.json from Polymarket (Gamma API)
 python simulate.py 200000  # writes sim_results.json (default 200k; ~35 sec)
 python build_site.py       # writes index.html
-python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracket, invariants)
+python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracket, invariants, market fit)
 ```
 
 ## Daily refresh (automated — no human in the loop)
@@ -93,8 +106,9 @@ python verify_sim.py       # green-gate checks (calibration, tiebreakers, bracke
 Stockholm)** — and on demand from the Actions tab (**Run workflow**). It:
 1. fetches current Elo (`fetch_elo.py`),
 2. fetches finished scores + knockout winners (`fetch_results.py`),
-3. re-runs `simulate.py 200000` + `build_site.py`,
-4. runs `verify_sim.py` as a green-gate, then commits & pushes to `main`
+3. fetches Polymarket outright prices (`fetch_market.py`),
+4. re-runs `simulate.py 200000` + `build_site.py`,
+5. runs `verify_sim.py` as a green-gate, then commits & pushes to `main`
    → Cloudflare Pages auto-deploys.
 
 **No API keys or secrets** — both data sources are public. Each step aborts the run
@@ -108,6 +122,11 @@ than fabricate** on any fetch/parse failure:
 - `fetch_results.py` — reads the official FIFA API, maps team names to the 48 canonical
   keys, orients group scores to each fixture, and records knockout winners. `--check`
   validates the current file.
+- `fetch_market.py` — reads the Polymarket Gamma API (`world-cup-winner` event), maps
+  team names to canonical keys, keeps live (>0.1%) prices, and requires them to sum
+  to ~1 (the market is negative-risk, so no de-vig is needed). `--check` validates the
+  current file. Even a stale committed file can't poison the output: `simulate.py`
+  re-validates age and team coverage and falls back to Elo.
 
 ## Hosting
 

@@ -1,6 +1,7 @@
 """Verification suite for the WC2026 simulator. Run: python verify_sim.py"""
 
 import json
+import math
 import os
 
 import numpy as np
@@ -132,9 +133,44 @@ def test_probability_invariants(n=4000):
     ok("all three hosts advance with high probability")
 
 
+def test_market_ratings(n=20000):
+    """Market-implied ratings (if market_odds.json is valid for today's bracket):
+    the fit must reproduce the market exactly, stay in a sane Elo band, and the
+    Monte-Carlo sampler must agree with the exact bracket enumeration. Runs
+    LAST — it mutates sim.RATING, and the earlier tests must see pure Elo."""
+    print("[5] Market-implied ratings")
+    sim.B, sim.T, _ = sim.calibrate()
+    meta = sim.apply_market_ratings()
+    if meta["mode"] != "market":
+        ok(f"skipped — Elo fallback active ({meta['reason']})")
+        return
+    target = meta["target"]
+
+    # (i) exact enumeration with the fitted ratings reproduces the market
+    model = sim.exact_champion_probs(sim.RATING)
+    worst = max(abs(model.get(t, 0.0) - p) for t, p in target.items())
+    assert worst < 1e-4, f"fit does not reproduce market: max err {worst:.2e}"
+    ok(f"fitted ratings reproduce the market champion prices (max err {worst:.1e})")
+
+    # (ii) implied ratings stay within a plausible band of true Elo
+    drift = {t: meta["implied"][t] - sim.ELO[t] for t in target}
+    far = {t: d for t, d in drift.items() if abs(d) > 400}
+    assert not far, f"implied rating(s) implausibly far from Elo: {far}"
+    ok("implied ratings within +/-400 of Elo")
+
+    # (iii) the MC sampler converges to the same numbers as the enumeration
+    out = sim.run(n, seed=3)
+    tol = 4 * math.sqrt(0.25 / n)   # ~4 sigma of a worst-case binomial share
+    bad = {t: (out[t]["winner"], target[t]) for t in target
+           if abs(out[t]["winner"] - target[t]) > tol}
+    assert not bad, f"MC disagrees with exact enumeration beyond {tol:.4f}: {bad}"
+    ok(f"{n}-sim Monte Carlo matches the exact champion probs (tol {tol:.4f})")
+
+
 if __name__ == "__main__":
     test_calibration()
     test_tiebreakers()
     test_bracket_integrity()
     test_probability_invariants()
+    test_market_ratings()
     print("\nAll verification checks passed.")

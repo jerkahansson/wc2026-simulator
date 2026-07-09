@@ -23,6 +23,7 @@ import math
 import os
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 from itertools import groupby
 
 import numpy as np
@@ -60,10 +61,15 @@ _missing = _teams - set(ELO)
 assert not _missing, f"teams missing from elo_ratings.json: {_missing}"
 assert len(_teams) == 48, f"expected 48 teams, found {len(_teams)}"
 
+# Match-model strengths. Defaults to Elo; apply_market_ratings() may overwrite
+# the still-alive teams with market-implied ratings fitted to the Polymarket
+# outright champion prices (Elo remains the fallback and the displayed number).
+RATING = dict(ELO)
+
 
 def dr_of(a, b):
-    """Elo difference for team a vs b, including host home advantage."""
-    return ELO[a] - ELO[b] + HA * (a in bk.HOSTS) - HA * (b in bk.HOSTS)
+    """Strength difference for team a vs b, including host home advantage."""
+    return RATING[a] - RATING[b] + HA * (a in bk.HOSTS) - HA * (b in bk.HOSTS)
 
 
 # ---------------------------------------------------------------------------
@@ -238,6 +244,163 @@ def _confirmed_group_outcome():
 if GROUP_STAGE_OVER:
     QUAL_WINNERS, QUAL_RUNNERS, QUAL_THIRD = _confirmed_group_outcome()
     QUAL_ASSIGN = bk.third_place_assignment(sorted(QUAL_THIRD))
+
+
+# ---------------------------------------------------------------------------
+# Market-implied ratings: fit team strengths to the Polymarket outright market
+# ---------------------------------------------------------------------------
+# The market only quotes champion prices, never hypothetical pairings (there is
+# no "Spain beats Argentina IF both reach the semi" market). So we solve the
+# inverse problem: find the rating vector that, pushed through the exact
+# knockout-bracket recursion, reproduces the market's champion probabilities.
+# With k alive teams that's k prices summing to 1 (k-1 numbers) against k
+# ratings where only differences matter (k-1 free) — exactly identified, so a
+# unique market-implied rating vector exists. Every conditional probability in
+# the simulated tree then agrees with the market, including pairings the market
+# never quotes. Elo remains the fallback whenever no valid market data exists.
+MARKET_FILE = os.path.join(DIR, "market_odds.json")
+MARKET_MAX_AGE_H = 36        # older market data than this -> fall back to Elo
+
+
+def ko_win_prob(a, b, ratings):
+    """Exact P(a advances past b): the analytic counterpart of _play_ko
+    (Poisson 90-min outcome probabilities + Elo-tilted shootout on a draw)."""
+    dr = (ratings.get(a, ELO[a]) - ratings.get(b, ELO[b])
+          + HA * (a in bk.HOSTS) - HA * (b in bk.HOSTS))
+    sup = dr / B
+    lh = max(0.15, (T + sup) / 2); la = max(0.15, (T - sup) / 2)
+    pw, pd, _ = _outcome_probs(lh, la)
+    we = 1.0 / (1.0 + 10 ** (-dr / 400))
+    return pw + pd * (0.5 + SHOOTOUT_TILT * (we - 0.5))
+
+
+def alive_teams():
+    """Teams that can still win: the 32 qualifiers minus played-KO losers."""
+    quals = (set(QUAL_WINNERS.values()) | set(QUAL_RUNNERS.values())
+             | set(QUAL_THIRD.values()))
+    losers = {(m["away"] if m["winner"] == m["home"] else m["home"])
+              for m in _KO_PLAYED if m.get("winner")}
+    return quals - losers
+
+
+def exact_champion_probs(ratings):
+    """P(champion) per alive team by exact enumeration over the remaining
+    bracket (no Monte Carlo). Walks KO_MATCHES in order keeping a win-
+    probability distribution per match; played matches are pinned to their
+    real winner. The two sides of a single-elimination match are disjoint
+    sub-brackets, hence independent, so the recursion is exact."""
+    win = {}   # match_no -> {team: P(team wins this match)}
+
+    def dist(tok):
+        if tok[0] == "W" and tok[1] in bk.GROUPS:
+            return {QUAL_WINNERS[tok[1]]: 1.0}
+        if tok[0] == "R" and tok[1] in bk.GROUPS:
+            return {QUAL_RUNNERS[tok[1]]: 1.0}
+        if tok[0] == "T":
+            return {QUAL_THIRD[QUAL_ASSIGN[int(tok[1:])]]: 1.0}
+        if tok[-1] == "W":
+            return win[int(tok[:-1])]
+        raise ValueError(tok)
+
+    final_no = None
+    for n in sorted(bk.KO_MATCHES):
+        if bk.ROUND_OF[n] == "3P":
+            continue   # losers' play-off; irrelevant to champion probabilities
+        if bk.ROUND_OF[n] == "F":
+            final_no = n
+        da, db = (dist(t) for t in bk.KO_MATCHES[n])
+        if len(da) == 1 and len(db) == 1:
+            ta, tb = next(iter(da)), next(iter(db))
+            pinned = KO_FINAL.get(frozenset((ta, tb)))
+            if pinned in (ta, tb):
+                win[n] = {pinned: 1.0}
+                continue
+        w = defaultdict(float)
+        for ta, pa in da.items():
+            for tb, pb in db.items():
+                p = ko_win_prob(ta, tb, ratings)
+                w[ta] += pa * pb * p
+                w[tb] += pa * pb * (1.0 - p)
+        win[n] = dict(w)
+    return win[final_no]
+
+
+def solve_market_ratings(target, tol=1e-6, max_iter=2000, step=60.0):
+    """Fit ratings for the alive teams so exact_champion_probs reproduces the
+    market's champion probabilities. Damped fixed-point iteration on the log
+    of the prob ratio (champion prob is monotone in own rating, so this is a
+    stable quasi-Newton step); ratings are re-centred each pass to keep the
+    mean at the Elo mean (only differences matter). Raises if not converged."""
+    r = {t: float(ELO[t]) for t in target}
+    base_mean = sum(r.values()) / len(r)
+    err = None
+    for _ in range(max_iter):
+        model = exact_champion_probs(r)
+        err = max(abs(model.get(t, 0.0) - p) for t, p in target.items())
+        if err < tol:
+            return r, err
+        for t, p in target.items():
+            r[t] += step * math.log(p / max(model.get(t, 1e-12), 1e-12))
+        shift = base_mean - sum(r.values()) / len(r)
+        for t in r:
+            r[t] += shift
+    raise RuntimeError(f"market rating fit did not converge (max err {err:.2e})")
+
+
+def apply_market_ratings():
+    """Switch the match model to market-implied strengths if valid, fresh
+    market data covers exactly the alive teams; otherwise leave RATING = Elo.
+    Returns the metadata block written into sim_results.json. Must be called
+    after calibrate() has set (B, T)."""
+    def fallback(reason):
+        print(f"Ratings: Elo (market data not used: {reason})")
+        return {"mode": "elo", "reason": reason}
+
+    if not GROUP_STAGE_OVER:
+        return fallback("group stage still open")
+    try:
+        with open(MARKET_FILE, encoding="utf-8") as f:
+            doc = json.load(f)
+        prices = doc["prices"]
+        fetched = datetime.fromisoformat(doc["fetched_at"])
+    except FileNotFoundError:
+        return fallback("no market_odds.json")
+    except (KeyError, ValueError) as exc:
+        return fallback(f"invalid market_odds.json ({exc})")
+
+    age_h = (datetime.now(timezone.utc) - fetched).total_seconds() / 3600
+    if age_h > MARKET_MAX_AGE_H:
+        return fallback(f"market_odds.json is {age_h:.0f}h old (max {MARKET_MAX_AGE_H}h)")
+    alive = alive_teams()
+    missing = sorted(t for t in alive if prices.get(t, 0.0) <= 0.0)
+    if missing:
+        return fallback(f"no market price for alive team(s): {', '.join(missing)}")
+    total = sum(prices[t] for t in alive)
+    if not 0.90 <= total <= 1.05:
+        return fallback(f"alive teams' prices sum to {total:.3f}, expected ~1.0 "
+                        "(market file predates a played match?)")
+
+    target = {t: prices[t] / total for t in alive}
+    try:
+        ratings, err = solve_market_ratings(target)
+    except RuntimeError as exc:
+        return fallback(str(exc))
+
+    RATING.update(ratings)
+    print(f"Ratings: market-implied (Polymarket, fetched {doc['fetched_at']}, "
+          f"fit err {err:.1e})")
+    print(f"  {'Team':<15}{'market':>8}{'rating':>8}{'elo':>7}{'diff':>6}")
+    for t in sorted(target, key=lambda t: -target[t]):
+        print(f"  {t:<15}{target[t]*100:>7.2f}%{ratings[t]:>8.0f}{ELO[t]:>7}"
+              f"{ratings[t]-ELO[t]:>+6.0f}")
+    return {
+        "mode": "market",
+        "source": doc.get("source", "polymarket"),
+        "fetched_at": doc["fetched_at"],
+        "fit_error": round(err, 8),
+        "target": {t: round(p, 5) for t, p in sorted(target.items())},
+        "implied": {t: round(ratings[t], 1) for t in sorted(ratings)},
+    }
 
 
 def simulate_once(rng):
@@ -607,6 +770,7 @@ def main():
     n_sims = int(sys.argv[1]) if len(sys.argv) > 1 else 200000
     B, T, mae = calibrate()
     print(f"Calibrated: B={B}  T={T}  (1X2 mean abs error vs market = {mae:.4f})")
+    ratings_source = apply_market_ratings()
 
     out, agg = run(n_sims, with_opponents=True)
     group = {t: next(l for l in bk.GROUP_LETTERS if t in bk.GROUPS[l]) for t in out}
@@ -614,6 +778,7 @@ def main():
         "updated": _json_today(),
         "n_sims": n_sims,
         "calibration": {"B": B, "T": T, "mae": round(mae, 4)},
+        "ratings_source": ratings_source,
         "bracket": build_bracket_payload(),
         "teams": build_rich_payload(out, agg, group, n_sims),
     }

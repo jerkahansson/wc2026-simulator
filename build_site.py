@@ -628,6 +628,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
     const simNote = el('div', {
       style: { marginTop: '4px', fontFamily: "'IBM Plex Mono',monospace", fontSize: '10px', color: '#6f86ad', letterSpacing: '.04em', lineHeight: '1.5' },
       text: 'Based on ' + Number(DATA.n_sims).toLocaleString() + ' Monte-Carlo simulations · updated ' + (DATA.updated || '')
+        + ' · strengths: ' + ((DATA.ratings_source || {}).mode === 'market' ? 'market-implied (Polymarket)' : 'Elo')
         + ' · * = few simulations reached this branch (indicative only)'
     });
     return el('div', { class: 'leftpanel' }, [headline, barsSection, historySection, ctx, crumbSection, simNote].filter(Boolean));
