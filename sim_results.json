@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-08",
+  "updated": "2026-07-09",
   "n_sims": 200000,
   "calibration": {
     "B": 275.0,
@@ -9,7 +9,7 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-09T08:45:53+00:00",
+    "fetched_at": "2026-07-09T08:57:04+00:00",
     "fit_error": 9.6e-07,
     "target": {
       "Argentina": 0.2003,
@@ -1866,7 +1866,7 @@
       }
     },
     "Croatia": {
-      "elo": 1882,
+      "elo": 1881,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -4656,7 +4656,7 @@
           "opponents": [
             {
               "name": "Croatia",
-              "elo": 1882,
+              "elo": 1881,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -4694,7 +4694,7 @@
           {
             "round": "R32",
             "opponent": "Croatia",
-            "elo": 1882,
+            "elo": 1881,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,

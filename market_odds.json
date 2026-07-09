@@ -1,7 +1,7 @@
 {
   "source": "polymarket",
   "event": "world-cup-winner",
-  "fetched_at": "2026-07-09T08:45:53+00:00",
+  "fetched_at": "2026-07-09T08:57:04+00:00",
   "prices": {
     "Argentina": 0.2005,
     "Belgium": 0.0245,

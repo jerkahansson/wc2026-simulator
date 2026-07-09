@@ -1,6 +1,6 @@
 {
   "_comment": "World Football Elo ratings for the 48 WC2026 teams. Source: eloratings.net/2026_World_Cup 'Current Ratings' (already reflects played group matches). Team names match copabet_picks.py MATCHES exactly. Hand-refreshable: re-scrape current ratings and update 'updated' + values.",
-  "updated": "2026-07-08",
+  "updated": "2026-07-09",
   "source": "eloratings.net",
   "ratings": {
     "Algeria": 1756,
@@ -13,7 +13,7 @@
     "Canada": 1729,
     "Cape Verde": 1619,
     "Colombia": 2003,
-    "Croatia": 1882,
+    "Croatia": 1881,
     "Curacao": 1438,
     "Czech Republic": 1680,
     "D.R. Congo": 1704,
