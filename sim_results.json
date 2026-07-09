@@ -9,27 +9,27 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-09T08:57:04+00:00",
-    "fit_error": 9.6e-07,
+    "fetched_at": "2026-07-09T10:03:03+00:00",
+    "fit_error": 9.9e-07,
     "target": {
-      "Argentina": 0.2003,
-      "Belgium": 0.02448,
-      "England": 0.15934,
-      "France": 0.31918,
-      "Morocco": 0.02747,
-      "Norway": 0.06044,
-      "Spain": 0.18731,
-      "Switzerland": 0.02148
+      "Argentina": 0.1997,
+      "Belgium": 0.0244,
+      "England": 0.15886,
+      "France": 0.31823,
+      "Morocco": 0.03038,
+      "Norway": 0.06026,
+      "Spain": 0.18675,
+      "Switzerland": 0.02141
     },
     "implied": {
-      "Argentina": 2131.1,
-      "Belgium": 1916.9,
-      "England": 2117.4,
-      "France": 2216.7,
-      "Morocco": 1935.3,
-      "Norway": 2008.7,
-      "Spain": 2132.3,
-      "Switzerland": 1896.7
+      "Argentina": 2129.0,
+      "Belgium": 1915.7,
+      "England": 2115.3,
+      "France": 2217.3,
+      "Morocco": 1945.5,
+      "Norway": 2006.7,
+      "Spain": 2130.8,
+      "Switzerland": 1894.7
     }
   },
   "bracket": [
@@ -619,19 +619,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.7371,
-      "final": 0.41293,
-      "winner": 0.20007,
+      "sf": 0.736435,
+      "final": 0.412355,
+      "winner": 0.199545,
       "group": "J",
-      "championProb": 0.20007,
+      "championProb": 0.199545,
       "predictedFinish": "Semi-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.7371,
-        "final": 0.41293,
-        "champion": 0.20007
+        "sf": 0.736435,
+        "final": 0.412355,
+        "champion": 0.199545
       },
       "history": [
         {
@@ -700,7 +700,7 @@
               "name": "Switzerland",
               "elo": 1949,
               "faceProb": 1.0,
-              "beatProb": 0.7371
+              "beatProb": 0.73643
             }
           ]
         },
@@ -710,14 +710,14 @@
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.61933,
-              "beatProb": 0.51629
+              "faceProb": 0.61728,
+              "beatProb": 0.51632
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.38067,
-              "beatProb": 0.63166
+              "faceProb": 0.38272,
+              "beatProb": 0.63028
             }
           ]
         },
@@ -727,26 +727,26 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.50599,
-              "beatProb": 0.40909
+              "faceProb": 0.49936,
+              "beatProb": 0.40667
             },
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.34179,
-              "beatProb": 0.49782
+              "faceProb": 0.3413,
+              "beatProb": 0.49543
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.07881,
-              "beatProb": 0.69734
+              "faceProb": 0.08459,
+              "beatProb": 0.69094
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.0734,
-              "beatProb": 0.71396
+              "faceProb": 0.07475,
+              "beatProb": 0.71306
             }
           ]
         }
@@ -778,41 +778,41 @@
                     "elo": 1949,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.7371,
+                    "beatProb": 0.73643,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "England",
                         "elo": 2076,
-                        "condProb": 0.4565,
-                        "reachProb": 0.4565,
-                        "beatProb": 0.51629,
+                        "condProb": 0.45459,
+                        "reachProb": 0.45459,
+                        "beatProb": 0.51632,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.26253,
-                            "reachProb": 0.11984,
-                            "beatProb": 0.41116,
+                            "condProb": 0.25889,
+                            "reachProb": 0.11769,
+                            "beatProb": 0.40815,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.17587,
-                            "reachProb": 0.08028,
-                            "beatProb": 0.49312,
+                            "condProb": 0.17556,
+                            "reachProb": 0.07981,
+                            "beatProb": 0.49367,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.04013,
-                            "reachProb": 0.01832,
-                            "beatProb": 0.70005,
+                            "condProb": 0.04301,
+                            "reachProb": 0.01955,
+                            "beatProb": 0.70077,
                             "children": []
                           }
                         ]
@@ -821,35 +821,35 @@
                         "round": "SF",
                         "opponent": "Norway",
                         "elo": 1972,
-                        "condProb": 0.28059,
-                        "reachProb": 0.28059,
-                        "beatProb": 0.63166,
+                        "condProb": 0.28185,
+                        "reachProb": 0.28185,
+                        "beatProb": 0.63028,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.31752,
-                            "reachProb": 0.08909,
-                            "beatProb": 0.40631,
+                            "condProb": 0.31303,
+                            "reachProb": 0.08822,
+                            "beatProb": 0.4047,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.21686,
-                            "reachProb": 0.06085,
-                            "beatProb": 0.50403,
+                            "condProb": 0.21616,
+                            "reachProb": 0.06092,
+                            "beatProb": 0.49774,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.0507,
-                            "reachProb": 0.01422,
-                            "beatProb": 0.69385,
+                            "condProb": 0.05439,
+                            "reachProb": 0.01533,
+                            "beatProb": 0.67841,
                             "children": []
                           }
                         ]
@@ -1064,19 +1064,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.279045,
-      "final": 0.07428,
-      "winner": 0.024275,
+      "sf": 0.27964,
+      "final": 0.074275,
+      "winner": 0.024435,
       "group": "G",
-      "championProb": 0.024275,
+      "championProb": 0.024435,
       "predictedFinish": "Quarter-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.279045,
-        "final": 0.07428,
-        "champion": 0.024275
+        "sf": 0.27964,
+        "final": 0.074275,
+        "champion": 0.024435
       },
       "history": [
         {
@@ -1145,7 +1145,7 @@
               "name": "Spain",
               "elo": 2177,
               "faceProb": 1.0,
-              "beatProb": 0.27904
+              "beatProb": 0.27964
             }
           ]
         },
@@ -1155,14 +1155,14 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.77797,
-              "beatProb": 0.20604
+              "faceProb": 0.77165,
+              "beatProb": 0.20435
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.22203,
-              "beatProb": 0.47696
+              "faceProb": 0.22835,
+              "beatProb": 0.47263
             }
           ]
         },
@@ -1172,26 +1172,26 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.40805,
-              "beatProb": 0.28604
+              "faceProb": 0.41501,
+              "beatProb": 0.28694
             },
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.34161,
-              "beatProb": 0.29458
+              "faceProb": 0.33968,
+              "beatProb": 0.29707
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.17151,
-              "beatProb": 0.38854
+              "faceProb": 0.1691,
+              "beatProb": 0.40406
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.07882,
-              "beatProb": 0.54313
+              "faceProb": 0.0762,
+              "beatProb": 0.53357
             }
           ]
         }
@@ -1223,41 +1223,41 @@
                     "elo": 2177,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.27904,
+                    "beatProb": 0.27964,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "France",
                         "elo": 2143,
-                        "condProb": 0.21709,
-                        "reachProb": 0.21709,
-                        "beatProb": 0.20604,
+                        "condProb": 0.21579,
+                        "reachProb": 0.21579,
+                        "beatProb": 0.20435,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.08303,
-                            "reachProb": 0.01802,
-                            "beatProb": 0.2871,
+                            "condProb": 0.08418,
+                            "reachProb": 0.01817,
+                            "beatProb": 0.28351,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.07124,
-                            "reachProb": 0.01546,
-                            "beatProb": 0.29745,
+                            "condProb": 0.07007,
+                            "reachProb": 0.01512,
+                            "beatProb": 0.30159,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.03531,
-                            "reachProb": 0.00766,
-                            "beatProb": 0.38226,
+                            "condProb": 0.03462,
+                            "reachProb": 0.00747,
+                            "beatProb": 0.40897,
                             "children": []
                           }
                         ]
@@ -1266,35 +1266,35 @@
                         "round": "SF",
                         "opponent": "Morocco",
                         "elo": 1921,
-                        "condProb": 0.06196,
-                        "reachProb": 0.06196,
-                        "beatProb": 0.47696,
+                        "condProb": 0.06385,
+                        "reachProb": 0.06385,
+                        "beatProb": 0.47263,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.19829,
-                            "reachProb": 0.01229,
-                            "beatProb": 0.28449,
+                            "condProb": 0.19826,
+                            "reachProb": 0.01266,
+                            "beatProb": 0.29186,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.15995,
-                            "reachProb": 0.00991,
-                            "beatProb": 0.29011,
+                            "condProb": 0.15833,
+                            "reachProb": 0.01011,
+                            "beatProb": 0.29031,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.08191,
-                            "reachProb": 0.00507,
-                            "beatProb": 0.39803,
+                            "condProb": 0.07971,
+                            "reachProb": 0.00509,
+                            "beatProb": 0.39686,
                             "children": []
                           }
                         ]
@@ -2430,19 +2430,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.61879,
-      "final": 0.33874,
-      "winner": 0.159185,
+      "sf": 0.61757,
+      "final": 0.33801,
+      "winner": 0.158515,
       "group": "L",
-      "championProb": 0.159185,
+      "championProb": 0.158515,
       "predictedFinish": "Semi-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.61879,
-        "final": 0.33874,
-        "champion": 0.159185
+        "sf": 0.61757,
+        "final": 0.33801,
+        "champion": 0.158515
       },
       "history": [
         {
@@ -2511,7 +2511,7 @@
               "name": "Norway",
               "elo": 1972,
               "faceProb": 1.0,
-              "beatProb": 0.61879
+              "beatProb": 0.61757
             }
           ]
         },
@@ -2521,14 +2521,14 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.73774,
-              "beatProb": 0.48371
+              "faceProb": 0.73609,
+              "beatProb": 0.48368
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.26226,
-              "beatProb": 0.72665
+              "faceProb": 0.26391,
+              "beatProb": 0.72484
             }
           ]
         },
@@ -2538,26 +2538,26 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.5012,
-              "beatProb": 0.39361
+              "faceProb": 0.50021,
+              "beatProb": 0.39101
             },
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.34277,
-              "beatProb": 0.47718
+              "faceProb": 0.34089,
+              "beatProb": 0.48136
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.08112,
-              "beatProb": 0.69341
+              "faceProb": 0.08426,
+              "beatProb": 0.67433
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.07491,
-              "beatProb": 0.70542
+              "faceProb": 0.07464,
+              "beatProb": 0.70293
             }
           ]
         }
@@ -2589,41 +2589,41 @@
                     "elo": 1972,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.61879,
+                    "beatProb": 0.61757,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "Argentina",
                         "elo": 2156,
-                        "condProb": 0.4565,
-                        "reachProb": 0.4565,
-                        "beatProb": 0.48371,
+                        "condProb": 0.45459,
+                        "reachProb": 0.45459,
+                        "beatProb": 0.48368,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.24206,
-                            "reachProb": 0.1105,
-                            "beatProb": 0.39715,
+                            "condProb": 0.241,
+                            "reachProb": 0.10955,
+                            "beatProb": 0.39195,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.16555,
-                            "reachProb": 0.07558,
-                            "beatProb": 0.47569,
+                            "condProb": 0.16524,
+                            "reachProb": 0.07512,
+                            "beatProb": 0.48133,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.03991,
-                            "reachProb": 0.01822,
-                            "beatProb": 0.6899,
+                            "condProb": 0.04145,
+                            "reachProb": 0.01885,
+                            "beatProb": 0.67657,
                             "children": []
                           }
                         ]
@@ -2632,35 +2632,35 @@
                         "round": "SF",
                         "opponent": "Switzerland",
                         "elo": 1949,
-                        "condProb": 0.16229,
-                        "reachProb": 0.16229,
-                        "beatProb": 0.72665,
+                        "condProb": 0.16298,
+                        "reachProb": 0.16298,
+                        "beatProb": 0.72484,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.36525,
-                            "reachProb": 0.05928,
-                            "beatProb": 0.38701,
+                            "condProb": 0.3652,
+                            "reachProb": 0.05952,
+                            "beatProb": 0.38928,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.24978,
-                            "reachProb": 0.04054,
-                            "beatProb": 0.47996,
+                            "condProb": 0.2461,
+                            "reachProb": 0.04011,
+                            "beatProb": 0.48143,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.05706,
-                            "reachProb": 0.00926,
-                            "beatProb": 0.70032,
+                            "condProb": 0.05912,
+                            "reachProb": 0.00963,
+                            "beatProb": 0.66995,
                             "children": []
                           }
                         ]
@@ -2681,19 +2681,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.77802,
-      "final": 0.50324,
-      "winner": 0.31917,
+      "sf": 0.77021,
+      "final": 0.500095,
+      "winner": 0.31862,
       "group": "I",
-      "championProb": 0.31917,
+      "championProb": 0.31862,
       "predictedFinish": "Final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.77802,
-        "final": 0.50324,
-        "champion": 0.31917
+        "sf": 0.77021,
+        "final": 0.500095,
+        "champion": 0.31862
       },
       "history": [
         {
@@ -2762,7 +2762,7 @@
               "name": "Morocco",
               "elo": 1921,
               "faceProb": 1.0,
-              "beatProb": 0.77802
+              "beatProb": 0.77021
             }
           ]
         },
@@ -2772,14 +2772,14 @@
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.72097,
-              "beatProb": 0.58988
+              "faceProb": 0.71984,
+              "beatProb": 0.59233
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.27903,
-              "beatProb": 0.79396
+              "faceProb": 0.28016,
+              "beatProb": 0.79565
             }
           ]
         },
@@ -2789,26 +2789,26 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.41519,
-              "beatProb": 0.59091
+              "faceProb": 0.41175,
+              "beatProb": 0.59333
             },
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.33736,
-              "beatProb": 0.60639
+              "faceProb": 0.33809,
+              "beatProb": 0.60899
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.16505,
-              "beatProb": 0.71442
+              "faceProb": 0.16713,
+              "beatProb": 0.71859
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.0824,
-              "beatProb": 0.80586
+              "faceProb": 0.08303,
+              "beatProb": 0.80482
             }
           ]
         }
@@ -2840,41 +2840,41 @@
                     "elo": 1921,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.77802,
+                    "beatProb": 0.77021,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "Spain",
                         "elo": 2177,
-                        "condProb": 0.56093,
-                        "reachProb": 0.56093,
-                        "beatProb": 0.58988,
+                        "condProb": 0.55442,
+                        "reachProb": 0.55442,
+                        "beatProb": 0.59233,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.2438,
-                            "reachProb": 0.13675,
-                            "beatProb": 0.59234,
+                            "condProb": 0.24276,
+                            "reachProb": 0.13459,
+                            "beatProb": 0.59373,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.19974,
-                            "reachProb": 0.11204,
-                            "beatProb": 0.60559,
+                            "condProb": 0.20005,
+                            "reachProb": 0.11091,
+                            "beatProb": 0.60896,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.09736,
-                            "reachProb": 0.05461,
-                            "beatProb": 0.71397,
+                            "condProb": 0.09929,
+                            "reachProb": 0.05505,
+                            "beatProb": 0.72044,
                             "children": []
                           }
                         ]
@@ -2883,35 +2883,35 @@
                         "round": "SF",
                         "opponent": "Belgium",
                         "elo": 1961,
-                        "condProb": 0.21709,
-                        "reachProb": 0.21709,
-                        "beatProb": 0.79396,
+                        "condProb": 0.21579,
+                        "reachProb": 0.21579,
+                        "beatProb": 0.79565,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.33251,
-                            "reachProb": 0.07218,
-                            "beatProb": 0.58821,
+                            "condProb": 0.33054,
+                            "reachProb": 0.07132,
+                            "beatProb": 0.59257,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.26595,
-                            "reachProb": 0.05774,
-                            "beatProb": 0.60795,
+                            "condProb": 0.26955,
+                            "reachProb": 0.05817,
+                            "beatProb": 0.60904,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.13105,
-                            "reachProb": 0.02845,
-                            "beatProb": 0.71529,
+                            "condProb": 0.13221,
+                            "reachProb": 0.02853,
+                            "beatProb": 0.71504,
                             "children": []
                           }
                         ]
@@ -3733,19 +3733,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.22198,
-      "final": 0.079865,
-      "winner": 0.02772,
+      "sf": 0.22979,
+      "final": 0.084255,
+      "winner": 0.03004,
       "group": "C",
-      "championProb": 0.02772,
+      "championProb": 0.03004,
       "predictedFinish": "Quarter-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.22198,
-        "final": 0.079865,
-        "champion": 0.02772
+        "sf": 0.22979,
+        "final": 0.084255,
+        "champion": 0.03004
       },
       "history": [
         {
@@ -3814,7 +3814,7 @@
               "name": "France",
               "elo": 2143,
               "faceProb": 1.0,
-              "beatProb": 0.22198
+              "beatProb": 0.22979
             }
           ]
         },
@@ -3824,14 +3824,14 @@
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.7209,
-              "beatProb": 0.29658
+              "faceProb": 0.72212,
+              "beatProb": 0.30482
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.2791,
-              "beatProb": 0.52304
+              "faceProb": 0.27788,
+              "beatProb": 0.52737
             }
           ]
         },
@@ -3841,26 +3841,26 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.4075,
-              "beatProb": 0.30266
+              "faceProb": 0.41398,
+              "beatProb": 0.30906
             },
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.34408,
-              "beatProb": 0.30659
+              "faceProb": 0.33802,
+              "beatProb": 0.32567
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.16641,
-              "beatProb": 0.4304
+              "faceProb": 0.16551,
+              "beatProb": 0.43887
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.08201,
-              "beatProb": 0.5687
+              "faceProb": 0.08249,
+              "beatProb": 0.55612
             }
           ]
         }
@@ -3892,41 +3892,41 @@
                     "elo": 2143,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.22198,
+                    "beatProb": 0.22979,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "Spain",
                         "elo": 2177,
-                        "condProb": 0.16003,
-                        "reachProb": 0.16003,
-                        "beatProb": 0.29658,
+                        "condProb": 0.16593,
+                        "reachProb": 0.16593,
+                        "beatProb": 0.30482,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.12145,
-                            "reachProb": 0.01944,
-                            "beatProb": 0.30409,
+                            "condProb": 0.12601,
+                            "reachProb": 0.02091,
+                            "beatProb": 0.30775,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.10142,
-                            "reachProb": 0.01623,
-                            "beatProb": 0.30807,
+                            "condProb": 0.10353,
+                            "reachProb": 0.01718,
+                            "beatProb": 0.32509,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.04909,
-                            "reachProb": 0.00785,
-                            "beatProb": 0.42202,
+                            "condProb": 0.05071,
+                            "reachProb": 0.00842,
+                            "beatProb": 0.43553,
                             "children": []
                           }
                         ]
@@ -3935,35 +3935,35 @@
                         "round": "SF",
                         "opponent": "Belgium",
                         "elo": 1961,
-                        "condProb": 0.06196,
-                        "reachProb": 0.06196,
-                        "beatProb": 0.52304,
+                        "condProb": 0.06385,
+                        "reachProb": 0.06385,
+                        "beatProb": 0.52737,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.21161,
-                            "reachProb": 0.01311,
-                            "beatProb": 0.30053,
+                            "condProb": 0.21878,
+                            "reachProb": 0.01397,
+                            "beatProb": 0.31102,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.18158,
-                            "reachProb": 0.01125,
-                            "beatProb": 0.30444,
+                            "condProb": 0.17696,
+                            "reachProb": 0.0113,
+                            "beatProb": 0.32655,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.08772,
-                            "reachProb": 0.00543,
-                            "beatProb": 0.4425,
+                            "condProb": 0.0866,
+                            "reachProb": 0.00553,
+                            "beatProb": 0.44394,
                             "children": []
                           }
                         ]
@@ -4154,19 +4154,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.38121,
-      "final": 0.166115,
-      "winner": 0.05965,
+      "sf": 0.38243,
+      "final": 0.166815,
+      "winner": 0.05977,
       "group": "I",
-      "championProb": 0.05965,
+      "championProb": 0.05977,
       "predictedFinish": "Quarter-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.38121,
-        "final": 0.166115,
-        "champion": 0.05965
+        "sf": 0.38243,
+        "final": 0.166815,
+        "champion": 0.05977
       },
       "history": [
         {
@@ -4235,7 +4235,7 @@
               "name": "England",
               "elo": 2076,
               "faceProb": 1.0,
-              "beatProb": 0.38121
+              "beatProb": 0.38243
             }
           ]
         },
@@ -4245,14 +4245,14 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.73606,
-              "beatProb": 0.36834
+              "faceProb": 0.73698,
+              "beatProb": 0.36972
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.26394,
-              "beatProb": 0.62376
+              "faceProb": 0.26302,
+              "beatProb": 0.62246
             }
           ]
         },
@@ -4262,26 +4262,26 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.50002,
-              "beatProb": 0.28558
+              "faceProb": 0.50103,
+              "beatProb": 0.28141
             },
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.34329,
-              "beatProb": 0.36072
+              "faceProb": 0.34008,
+              "beatProb": 0.36912
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.08,
-              "beatProb": 0.5696
+              "faceProb": 0.0836,
+              "beatProb": 0.56113
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.07669,
-              "beatProb": 0.61146
+              "faceProb": 0.07529,
+              "beatProb": 0.59594
             }
           ]
         }
@@ -4313,41 +4313,41 @@
                     "elo": 2076,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.38121,
+                    "beatProb": 0.38243,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "Argentina",
                         "elo": 2156,
-                        "condProb": 0.28059,
-                        "reachProb": 0.28059,
-                        "beatProb": 0.36834,
+                        "condProb": 0.28185,
+                        "reachProb": 0.28185,
+                        "beatProb": 0.36972,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.18516,
-                            "reachProb": 0.05196,
-                            "beatProb": 0.28679,
+                            "condProb": 0.18592,
+                            "reachProb": 0.0524,
+                            "beatProb": 0.28244,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.12518,
-                            "reachProb": 0.03513,
-                            "beatProb": 0.36498,
+                            "condProb": 0.1247,
+                            "reachProb": 0.03515,
+                            "beatProb": 0.37175,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.02981,
-                            "reachProb": 0.00836,
-                            "beatProb": 0.57083,
+                            "condProb": 0.03112,
+                            "reachProb": 0.00877,
+                            "beatProb": 0.57583,
                             "children": []
                           }
                         ]
@@ -4356,35 +4356,35 @@
                         "round": "SF",
                         "opponent": "Switzerland",
                         "elo": 1949,
-                        "condProb": 0.10061,
-                        "reachProb": 0.10061,
-                        "beatProb": 0.62376,
+                        "condProb": 0.10058,
+                        "reachProb": 0.10058,
+                        "beatProb": 0.62246,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.30915,
-                            "reachProb": 0.03111,
-                            "beatProb": 0.28356,
+                            "condProb": 0.30999,
+                            "reachProb": 0.03118,
+                            "beatProb": 0.27967,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.21766,
-                            "reachProb": 0.0219,
-                            "beatProb": 0.35388,
+                            "condProb": 0.21459,
+                            "reachProb": 0.02159,
+                            "beatProb": 0.36484,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.04895,
-                            "reachProb": 0.00492,
-                            "beatProb": 0.56751,
+                            "condProb": 0.05145,
+                            "reachProb": 0.00517,
+                            "beatProb": 0.53623,
                             "children": []
                           }
                         ]
@@ -5206,19 +5206,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.720955,
-      "final": 0.342615,
-      "winner": 0.18884,
+      "sf": 0.72036,
+      "final": 0.341375,
+      "winner": 0.187565,
       "group": "H",
-      "championProb": 0.18884,
+      "championProb": 0.187565,
       "predictedFinish": "Semi-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.720955,
-        "final": 0.342615,
-        "champion": 0.18884
+        "sf": 0.72036,
+        "final": 0.341375,
+        "champion": 0.187565
       },
       "history": [
         {
@@ -5287,7 +5287,7 @@
               "name": "Belgium",
               "elo": 1961,
               "faceProb": 1.0,
-              "beatProb": 0.72096
+              "beatProb": 0.72036
             }
           ]
         },
@@ -5297,14 +5297,14 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.77804,
-              "beatProb": 0.41012
+              "faceProb": 0.76965,
+              "beatProb": 0.40767
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.22196,
-              "beatProb": 0.70342
+              "faceProb": 0.23035,
+              "beatProb": 0.69518
             }
           ]
         },
@@ -5314,26 +5314,26 @@
             {
               "name": "Argentina",
               "elo": 2156,
-              "faceProb": 0.41193,
-              "beatProb": 0.50218
+              "faceProb": 0.41226,
+              "beatProb": 0.50457
             },
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.33889,
-              "beatProb": 0.52282
+              "faceProb": 0.33753,
+              "beatProb": 0.51864
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.16644,
-              "beatProb": 0.63928
+              "faceProb": 0.16618,
+              "beatProb": 0.63088
             },
             {
               "name": "Switzerland",
               "elo": 1949,
-              "faceProb": 0.08273,
-              "beatProb": 0.73399
+              "faceProb": 0.08403,
+              "beatProb": 0.73226
             }
           ]
         }
@@ -5365,41 +5365,41 @@
                     "elo": 1961,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.72096,
+                    "beatProb": 0.72036,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "France",
                         "elo": 2143,
-                        "condProb": 0.56093,
-                        "reachProb": 0.56093,
-                        "beatProb": 0.41012,
+                        "condProb": 0.55442,
+                        "reachProb": 0.55442,
+                        "beatProb": 0.40767,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.16933,
-                            "reachProb": 0.09498,
-                            "beatProb": 0.49829,
+                            "condProb": 0.16845,
+                            "reachProb": 0.0934,
+                            "beatProb": 0.50474,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.13856,
-                            "reachProb": 0.07773,
-                            "beatProb": 0.52197,
+                            "condProb": 0.13729,
+                            "reachProb": 0.07612,
+                            "beatProb": 0.5181,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.06842,
-                            "reachProb": 0.03838,
-                            "beatProb": 0.64174,
+                            "condProb": 0.06774,
+                            "reachProb": 0.03755,
+                            "beatProb": 0.63786,
                             "children": []
                           }
                         ]
@@ -5408,35 +5408,35 @@
                         "round": "SF",
                         "opponent": "Morocco",
                         "elo": 1921,
-                        "condProb": 0.16003,
-                        "reachProb": 0.16003,
-                        "beatProb": 0.70342,
+                        "condProb": 0.16593,
+                        "reachProb": 0.16593,
+                        "beatProb": 0.69518,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "Argentina",
                             "elo": 2156,
-                            "condProb": 0.28839,
-                            "reachProb": 0.04615,
-                            "beatProb": 0.51018,
+                            "condProb": 0.28529,
+                            "reachProb": 0.04734,
+                            "beatProb": 0.50422,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "England",
                             "elo": 2076,
-                            "condProb": 0.23987,
-                            "reachProb": 0.03839,
-                            "beatProb": 0.52455,
+                            "condProb": 0.23569,
+                            "reachProb": 0.03911,
+                            "beatProb": 0.51969,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Norway",
                             "elo": 1972,
-                            "condProb": 0.11651,
-                            "reachProb": 0.01864,
-                            "beatProb": 0.63422,
+                            "condProb": 0.11556,
+                            "reachProb": 0.01918,
+                            "beatProb": 0.61721,
                             "children": []
                           }
                         ]
@@ -5554,19 +5554,19 @@
       "advance": 1.0,
       "r16": 1.0,
       "qf": 1.0,
-      "sf": 0.2629,
-      "final": 0.082215,
-      "winner": 0.02109,
+      "sf": 0.263565,
+      "final": 0.08282,
+      "winner": 0.02151,
       "group": "B",
-      "championProb": 0.02109,
+      "championProb": 0.02151,
       "predictedFinish": "Quarter-final",
       "reach": {
         "advance": 1.0,
         "r16": 1.0,
         "qf": 1.0,
-        "sf": 0.2629,
-        "final": 0.082215,
-        "champion": 0.02109
+        "sf": 0.263565,
+        "final": 0.08282,
+        "champion": 0.02151
       },
       "history": [
         {
@@ -5635,7 +5635,7 @@
               "name": "Argentina",
               "elo": 2156,
               "faceProb": 1.0,
-              "beatProb": 0.2629
+              "beatProb": 0.26356
             }
           ]
         },
@@ -5645,14 +5645,14 @@
             {
               "name": "England",
               "elo": 2076,
-              "faceProb": 0.61729,
-              "beatProb": 0.27335
+              "faceProb": 0.61837,
+              "beatProb": 0.27516
             },
             {
               "name": "Norway",
               "elo": 1972,
-              "faceProb": 0.38271,
-              "beatProb": 0.37624
+              "faceProb": 0.38163,
+              "beatProb": 0.37754
             }
           ]
         },
@@ -5662,26 +5662,26 @@
             {
               "name": "France",
               "elo": 2143,
-              "faceProb": 0.50435,
-              "beatProb": 0.19414
+              "faceProb": 0.50139,
+              "beatProb": 0.19518
             },
             {
               "name": "Spain",
               "elo": 2177,
-              "faceProb": 0.34477,
-              "beatProb": 0.26601
+              "faceProb": 0.34635,
+              "beatProb": 0.26774
             },
             {
               "name": "Morocco",
               "elo": 1921,
-              "faceProb": 0.07967,
-              "beatProb": 0.4313
+              "faceProb": 0.08392,
+              "beatProb": 0.44388
             },
             {
               "name": "Belgium",
               "elo": 1961,
-              "faceProb": 0.07122,
-              "beatProb": 0.45687
+              "faceProb": 0.06834,
+              "beatProb": 0.46643
             }
           ]
         }
@@ -5713,41 +5713,41 @@
                     "elo": 2156,
                     "condProb": 1.0,
                     "reachProb": 1.0,
-                    "beatProb": 0.2629,
+                    "beatProb": 0.26356,
                     "children": [
                       {
                         "round": "SF",
                         "opponent": "England",
                         "elo": 2076,
-                        "condProb": 0.16229,
-                        "reachProb": 0.16229,
-                        "beatProb": 0.27335,
+                        "condProb": 0.16298,
+                        "reachProb": 0.16298,
+                        "beatProb": 0.27516,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.13624,
-                            "reachProb": 0.02211,
-                            "beatProb": 0.19923,
+                            "condProb": 0.13584,
+                            "reachProb": 0.02214,
+                            "beatProb": 0.20167,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.09536,
-                            "reachProb": 0.01547,
-                            "beatProb": 0.26333,
+                            "condProb": 0.09728,
+                            "reachProb": 0.01586,
+                            "beatProb": 0.26805,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.02271,
-                            "reachProb": 0.00368,
-                            "beatProb": 0.42198,
+                            "condProb": 0.02332,
+                            "reachProb": 0.0038,
+                            "beatProb": 0.44474,
                             "children": []
                           }
                         ]
@@ -5756,35 +5756,35 @@
                         "round": "SF",
                         "opponent": "Norway",
                         "elo": 1972,
-                        "condProb": 0.10061,
-                        "reachProb": 0.10061,
-                        "beatProb": 0.37624,
+                        "condProb": 0.10058,
+                        "reachProb": 0.10058,
+                        "beatProb": 0.37754,
                         "children": [
                           {
                             "round": "Final",
                             "opponent": "France",
                             "elo": 2143,
-                            "condProb": 0.19237,
-                            "reachProb": 0.01936,
-                            "beatProb": 0.18832,
+                            "condProb": 0.19272,
+                            "reachProb": 0.01938,
+                            "beatProb": 0.18777,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Spain",
                             "elo": 2177,
-                            "condProb": 0.12791,
-                            "reachProb": 0.01287,
-                            "beatProb": 0.26923,
+                            "condProb": 0.12755,
+                            "reachProb": 0.01283,
+                            "beatProb": 0.26734,
                             "children": []
                           },
                           {
                             "round": "Final",
                             "opponent": "Morocco",
                             "elo": 1921,
-                            "condProb": 0.02847,
-                            "reachProb": 0.00286,
-                            "beatProb": 0.44328,
+                            "condProb": 0.03132,
+                            "reachProb": 0.00315,
+                            "beatProb": 0.44286,
                             "children": []
                           }
                         ]
