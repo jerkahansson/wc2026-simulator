@@ -1,6 +1,6 @@
 {
   "_comment": "Final scores for played WC2026 matches. results[] = group stage keyed by fixture home/away; knockout[] carries the advancing winner. Auto-updated daily from the FIFA public API (api.fifa.com) by fetch_results.py.",
-  "updated": "2026-07-09",
+  "updated": "2026-07-10",
   "results": [
     {"home": "Mexico", "away": "South Africa", "status": "final", "score_home": 2, "score_away": 0, "date": "2026-06-11"},
     {"home": "Canada", "away": "Bosnia & Herzegovina", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-12"},
@@ -99,6 +99,7 @@
     {"round": "R16", "home": "Portugal", "away": "Spain", "score_home": 0, "score_away": 1, "winner": "Spain", "date": "2026-07-06"},
     {"round": "R16", "home": "Argentina", "away": "Egypt", "score_home": 3, "score_away": 2, "winner": "Argentina", "date": "2026-07-07"},
     {"round": "R16", "home": "Switzerland", "away": "Colombia", "score_home": 0, "score_away": 0, "winner": "Switzerland", "date": "2026-07-07"},
-    {"round": "R16", "home": "USA", "away": "Belgium", "score_home": 1, "score_away": 4, "winner": "Belgium", "date": "2026-07-07"}
+    {"round": "R16", "home": "USA", "away": "Belgium", "score_home": 1, "score_away": 4, "winner": "Belgium", "date": "2026-07-07"},
+    {"round": "QF", "home": "France", "away": "Morocco", "score_home": 2, "score_away": 0, "winner": "France", "date": "2026-07-09"}
   ]
 }
