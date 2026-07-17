@@ -1,9 +1,9 @@
 {
   "source": "polymarket",
   "event": "world-cup-winner",
-  "fetched_at": "2026-07-16T08:39:49+00:00",
+  "fetched_at": "2026-07-17T08:33:12+00:00",
   "prices": {
-    "Argentina": 0.4155,
-    "Spain": 0.5795
+    "Argentina": 0.4115,
+    "Spain": 0.5855
   }
 }

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-16",
+  "updated": "2026-07-17",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
@@ -9,15 +9,15 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-16T08:39:49+00:00",
-    "fit_error": 9.1e-07,
+    "fetched_at": "2026-07-17T08:33:12+00:00",
+    "fit_error": 1e-06,
     "target": {
-      "Argentina": 0.41759,
-      "Spain": 0.58241
+      "Argentina": 0.41274,
+      "Spain": 0.58726
     },
     "implied": {
-      "Argentina": 2178.4,
-      "Spain": 2253.6
+      "Argentina": 2176.2,
+      "Spain": 2255.8
     }
   },
   "bracket": [
@@ -609,9 +609,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.41865,
+      "winner": 0.414655,
       "group": "J",
-      "championProb": 0.41865,
+      "championProb": 0.414655,
       "predictedFinish": "Final",
       "reach": {
         "advance": 1.0,
@@ -619,7 +619,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.41865
+        "champion": 0.414655
       },
       "history": [
         {
@@ -724,7 +724,7 @@
               "name": "Spain",
               "elo": 2232,
               "faceProb": 1.0,
-              "beatProb": 0.41865
+              "beatProb": 0.41465
             }
           ]
         }
@@ -772,7 +772,7 @@
                             "elo": 2232,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.41865,
+                            "beatProb": 0.41465,
                             "children": []
                           }
                         ]
@@ -1407,7 +1407,7 @@
           "opponents": [
             {
               "name": "South Africa",
-              "elo": 1560,
+              "elo": 1559,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -1445,7 +1445,7 @@
           {
             "round": "R32",
             "opponent": "South Africa",
-            "elo": 1560,
+            "elo": 1559,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -4471,7 +4471,7 @@
       }
     },
     "South Africa": {
-      "elo": 1560,
+      "elo": 1559,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -4649,9 +4649,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.58135,
+      "winner": 0.585345,
       "group": "H",
-      "championProb": 0.58135,
+      "championProb": 0.585345,
       "predictedFinish": "Champion",
       "reach": {
         "advance": 1.0,
@@ -4659,7 +4659,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.58135
+        "champion": 0.585345
       },
       "history": [
         {
@@ -4764,7 +4764,7 @@
               "name": "Argentina",
               "elo": 2200,
               "faceProb": 1.0,
-              "beatProb": 0.58135
+              "beatProb": 0.58535
             }
           ]
         }
@@ -4812,7 +4812,7 @@
                             "elo": 2200,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.58135,
+                            "beatProb": 0.58535,
                             "children": []
                           }
                         ]
