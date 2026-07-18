@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-17",
+  "updated": "2026-07-18",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
@@ -9,15 +9,15 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-17T08:33:12+00:00",
-    "fit_error": 1e-06,
+    "fetched_at": "2026-07-18T08:16:46+00:00",
+    "fit_error": 8.4e-07,
     "target": {
-      "Argentina": 0.41274,
-      "Spain": 0.58726
+      "Argentina": 0.40433,
+      "Spain": 0.59567
     },
     "implied": {
-      "Argentina": 2176.2,
-      "Spain": 2255.8
+      "Argentina": 2172.3,
+      "Spain": 2259.7
     }
   },
   "bracket": [
@@ -609,9 +609,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.414655,
+      "winner": 0.404725,
       "group": "J",
-      "championProb": 0.414655,
+      "championProb": 0.404725,
       "predictedFinish": "Final",
       "reach": {
         "advance": 1.0,
@@ -619,7 +619,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.414655
+        "champion": 0.404725
       },
       "history": [
         {
@@ -724,7 +724,7 @@
               "name": "Spain",
               "elo": 2232,
               "faceProb": 1.0,
-              "beatProb": 0.41465
+              "beatProb": 0.40473
             }
           ]
         }
@@ -772,7 +772,7 @@
                             "elo": 2232,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.41465,
+                            "beatProb": 0.40473,
                             "children": []
                           }
                         ]
@@ -4649,9 +4649,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.585345,
+      "winner": 0.595275,
       "group": "H",
-      "championProb": 0.585345,
+      "championProb": 0.595275,
       "predictedFinish": "Champion",
       "reach": {
         "advance": 1.0,
@@ -4659,7 +4659,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.585345
+        "champion": 0.595275
       },
       "history": [
         {
@@ -4764,7 +4764,7 @@
               "name": "Argentina",
               "elo": 2200,
               "faceProb": 1.0,
-              "beatProb": 0.58535
+              "beatProb": 0.59527
             }
           ]
         }
@@ -4812,7 +4812,7 @@
                             "elo": 2200,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.58535,
+                            "beatProb": 0.59527,
                             "children": []
                           }
                         ]
