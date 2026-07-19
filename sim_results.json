@@ -9,15 +9,15 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-18T08:16:46+00:00",
-    "fit_error": 8.4e-07,
+    "fetched_at": "2026-07-19T08:42:01+00:00",
+    "fit_error": 7.7e-07,
     "target": {
-      "Argentina": 0.40433,
-      "Spain": 0.59567
+      "Argentina": 0.4095,
+      "Spain": 0.5905
     },
     "implied": {
-      "Argentina": 2172.3,
-      "Spain": 2259.7
+      "Argentina": 2174.7,
+      "Spain": 2257.3
     }
   },
   "bracket": [
@@ -609,9 +609,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.404725,
+      "winner": 0.408955,
       "group": "J",
-      "championProb": 0.404725,
+      "championProb": 0.408955,
       "predictedFinish": "Final",
       "reach": {
         "advance": 1.0,
@@ -619,7 +619,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.404725
+        "champion": 0.408955
       },
       "history": [
         {
@@ -724,7 +724,7 @@
               "name": "Spain",
               "elo": 2232,
               "faceProb": 1.0,
-              "beatProb": 0.40473
+              "beatProb": 0.40896
             }
           ]
         }
@@ -772,7 +772,7 @@
                             "elo": 2232,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.40473,
+                            "beatProb": 0.40896,
                             "children": []
                           }
                         ]
@@ -2310,6 +2310,13 @@
           "teamScore": 1,
           "oppScore": 2,
           "result": "L"
+        },
+        {
+          "stage": "Bronze final",
+          "opponent": "France",
+          "teamScore": 6,
+          "oppScore": 4,
+          "result": "W"
         }
       ],
       "rounds": [
@@ -2478,6 +2485,13 @@
           "opponent": "Spain",
           "teamScore": 0,
           "oppScore": 2,
+          "result": "L"
+        },
+        {
+          "stage": "Bronze final",
+          "opponent": "England",
+          "teamScore": 4,
+          "oppScore": 6,
           "result": "L"
         }
       ],
@@ -4649,9 +4663,9 @@
       "qf": 1.0,
       "sf": 1.0,
       "final": 1.0,
-      "winner": 0.595275,
+      "winner": 0.591045,
       "group": "H",
-      "championProb": 0.595275,
+      "championProb": 0.591045,
       "predictedFinish": "Champion",
       "reach": {
         "advance": 1.0,
@@ -4659,7 +4673,7 @@
         "qf": 1.0,
         "sf": 1.0,
         "final": 1.0,
-        "champion": 0.595275
+        "champion": 0.591045
       },
       "history": [
         {
@@ -4764,7 +4778,7 @@
               "name": "Argentina",
               "elo": 2200,
               "faceProb": 1.0,
-              "beatProb": 0.59527
+              "beatProb": 0.59105
             }
           ]
         }
@@ -4812,7 +4826,7 @@
                             "elo": 2200,
                             "condProb": 1.0,
                             "reachProb": 1.0,
-                            "beatProb": 0.59527,
+                            "beatProb": 0.59105,
                             "children": []
                           }
                         ]
