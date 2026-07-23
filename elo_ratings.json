@@ -1,6 +1,6 @@
 {
   "_comment": "World Football Elo ratings for the 48 WC2026 teams. Source: eloratings.net/2026_World_Cup 'Current Ratings' (already reflects played group matches). Team names match copabet_picks.py MATCHES exactly. Hand-refreshable: re-scrape current ratings and update 'updated' + values.",
-  "updated": "2026-07-22",
+  "updated": "2026-07-23",
   "source": "eloratings.net",
   "ratings": {
     "Algeria": 1756,

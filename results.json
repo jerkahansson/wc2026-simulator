@@ -1,6 +1,6 @@
 {
   "_comment": "Final scores for played WC2026 matches. results[] = group stage keyed by fixture home/away; knockout[] carries the advancing winner. Auto-updated daily from the FIFA public API (api.fifa.com) by fetch_results.py.",
-  "updated": "2026-07-22",
+  "updated": "2026-07-23",
   "results": [
     {"home": "Mexico", "away": "South Africa", "status": "final", "score_home": 2, "score_away": 0, "date": "2026-06-11"},
     {"home": "Canada", "away": "Bosnia & Herzegovina", "status": "final", "score_home": 1, "score_away": 1, "date": "2026-06-12"},
