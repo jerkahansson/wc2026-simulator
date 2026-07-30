@@ -1,19 +1,19 @@
 {
   "_comment": "World Football Elo ratings for the 48 WC2026 teams. Source: eloratings.net/2026_World_Cup 'Current Ratings' (already reflects played group matches). Team names match copabet_picks.py MATCHES exactly. Hand-refreshable: re-scrape current ratings and update 'updated' + values.",
-  "updated": "2026-07-28",
+  "updated": "2026-07-30",
   "source": "eloratings.net",
   "ratings": {
     "Algeria": 1756,
     "Argentina": 2173,
     "Australia": 1795,
     "Austria": 1821,
-    "Belgium": 1948,
+    "Belgium": 1947,
     "Bosnia & Herzegovina": 1605,
     "Brazil": 1993,
     "Canada": 1729,
     "Cape Verde": 1619,
     "Colombia": 2003,
-    "Croatia": 1882,
+    "Croatia": 1881,
     "Curacao": 1438,
     "Czech Republic": 1680,
     "D.R. Congo": 1704,
@@ -22,11 +22,11 @@
     "England": 2125,
     "France": 2070,
     "Germany": 1908,
-    "Ghana": 1570,
+    "Ghana": 1571,
     "Haiti": 1517,
     "Iran": 1764,
     "Iraq": 1561,
-    "Ivory Coast": 1727,
+    "Ivory Coast": 1728,
     "Japan": 1888,
     "Jordan": 1628,
     "Mexico": 1913,
@@ -41,7 +41,7 @@
     "Saudi Arabia": 1596,
     "Scotland": 1745,
     "Senegal": 1816,
-    "South Africa": 1559,
+    "South Africa": 1560,
     "South Korea": 1723,
     "Spain": 2259,
     "Sweden": 1731,
@@ -50,6 +50,6 @@
     "Turkey": 1852,
     "USA": 1747,
     "Uruguay": 1841,
-    "Uzbekistan": 1631
+    "Uzbekistan": 1630
   }
 }

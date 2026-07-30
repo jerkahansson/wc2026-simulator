@@ -1,15 +1,15 @@
 {
-  "updated": "2026-07-28",
+  "updated": "2026-07-30",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
-    "T": 2.28,
+    "T": 2.3,
     "mae": 0.0486
   },
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-07-29T09:20:07+00:00",
+    "fetched_at": "2026-07-30T09:11:29+00:00",
     "fit_error": 0.0,
     "target": {
       "Spain": 1.0
@@ -986,7 +986,7 @@
       }
     },
     "Belgium": {
-      "elo": 1948,
+      "elo": 1947,
       "win_group": 1.0,
       "runner_up": 0.0,
       "advance": 1.0,
@@ -1412,7 +1412,7 @@
           "opponents": [
             {
               "name": "South Africa",
-              "elo": 1559,
+              "elo": 1560,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -1450,7 +1450,7 @@
           {
             "round": "R32",
             "opponent": "South Africa",
-            "elo": 1559,
+            "elo": 1560,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -1630,7 +1630,7 @@
           "opponents": [
             {
               "name": "Ghana",
-              "elo": 1570,
+              "elo": 1571,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -1668,7 +1668,7 @@
           {
             "round": "R32",
             "opponent": "Ghana",
-            "elo": 1570,
+            "elo": 1571,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -1688,7 +1688,7 @@
       }
     },
     "Croatia": {
-      "elo": 1882,
+      "elo": 1881,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -2695,7 +2695,7 @@
       }
     },
     "Ghana": {
-      "elo": 1570,
+      "elo": 1571,
       "win_group": 0.0,
       "runner_up": 0.0,
       "advance": 1.0,
@@ -3011,7 +3011,7 @@
       }
     },
     "Ivory Coast": {
-      "elo": 1727,
+      "elo": 1728,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -3784,7 +3784,7 @@
           "opponents": [
             {
               "name": "Ivory Coast",
-              "elo": 1727,
+              "elo": 1728,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -3829,7 +3829,7 @@
           {
             "round": "R32",
             "opponent": "Ivory Coast",
-            "elo": 1727,
+            "elo": 1728,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -4116,7 +4116,7 @@
           "opponents": [
             {
               "name": "Croatia",
-              "elo": 1882,
+              "elo": 1881,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -4154,7 +4154,7 @@
           {
             "round": "R32",
             "opponent": "Croatia",
-            "elo": 1882,
+            "elo": 1881,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -4449,7 +4449,7 @@
           "opponents": [
             {
               "name": "Belgium",
-              "elo": 1948,
+              "elo": 1947,
               "faceProb": 1.0,
               "beatProb": 0.0
             }
@@ -4480,7 +4480,7 @@
           {
             "round": "R32",
             "opponent": "Belgium",
-            "elo": 1948,
+            "elo": 1947,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 0.0,
@@ -4490,7 +4490,7 @@
       }
     },
     "South Africa": {
-      "elo": 1559,
+      "elo": 1560,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -4766,7 +4766,7 @@
           "opponents": [
             {
               "name": "Belgium",
-              "elo": 1948,
+              "elo": 1947,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -4819,7 +4819,7 @@
                   {
                     "round": "QF",
                     "opponent": "Belgium",
-                    "elo": 1948,
+                    "elo": 1947,
                     "condProb": 1.0,
                     "reachProb": 1.0,
                     "beatProb": 1.0,
@@ -5315,7 +5315,7 @@
           "opponents": [
             {
               "name": "Belgium",
-              "elo": 1948,
+              "elo": 1947,
               "faceProb": 1.0,
               "beatProb": 0.0
             }
@@ -5350,7 +5350,7 @@
               {
                 "round": "R16",
                 "opponent": "Belgium",
-                "elo": 1948,
+                "elo": 1947,
                 "condProb": 1.0,
                 "reachProb": 1.0,
                 "beatProb": 0.0,
@@ -5435,7 +5435,7 @@
       }
     },
     "Uzbekistan": {
-      "elo": 1631,
+      "elo": 1630,
       "win_group": 0.0,
       "runner_up": 0.0,
       "advance": 0.0,
