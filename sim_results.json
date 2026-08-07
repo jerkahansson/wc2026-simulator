@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-04",
+  "updated": "2026-08-07",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
@@ -9,7 +9,7 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-08-06T09:20:10+00:00",
+    "fetched_at": "2026-08-07T07:50:40+00:00",
     "fit_error": 0.0,
     "target": {
       "Spain": 1.0
@@ -5435,7 +5435,7 @@
       }
     },
     "Uzbekistan": {
-      "elo": 1630,
+      "elo": 1631,
       "win_group": 0.0,
       "runner_up": 0.0,
       "advance": 0.0,
