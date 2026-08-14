@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-12",
+  "updated": "2026-08-14",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
@@ -9,7 +9,7 @@
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-08-13T07:59:34+00:00",
+    "fetched_at": "2026-08-14T07:56:31+00:00",
     "fit_error": 0.0,
     "target": {
       "Spain": 1.0
