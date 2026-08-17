@@ -1,15 +1,15 @@
 {
-  "updated": "2026-08-16",
+  "updated": "2026-08-17",
   "n_sims": 200000,
   "calibration": {
     "B": 270.0,
     "T": 2.3,
-    "mae": 0.0485
+    "mae": 0.0486
   },
   "ratings_source": {
     "mode": "market",
     "source": "polymarket",
-    "fetched_at": "2026-08-16T07:08:04+00:00",
+    "fetched_at": "2026-08-17T07:30:52+00:00",
     "fit_error": 0.0,
     "target": {
       "Spain": 1.0
@@ -1302,7 +1302,7 @@
           "opponents": [
             {
               "name": "Norway",
-              "elo": 1952,
+              "elo": 1951,
               "faceProb": 1.0,
               "beatProb": 0.0
             }
@@ -1337,7 +1337,7 @@
               {
                 "round": "R16",
                 "opponent": "Norway",
-                "elo": 1952,
+                "elo": 1951,
                 "condProb": 1.0,
                 "reachProb": 1.0,
                 "beatProb": 0.0,
@@ -2084,7 +2084,7 @@
           "opponents": [
             {
               "name": "Mexico",
-              "elo": 1913,
+              "elo": 1914,
               "faceProb": 1.0,
               "beatProb": 0.0
             }
@@ -2115,7 +2115,7 @@
           {
             "round": "R32",
             "opponent": "Mexico",
-            "elo": 1913,
+            "elo": 1914,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 0.0,
@@ -2341,7 +2341,7 @@
           "opponents": [
             {
               "name": "Mexico",
-              "elo": 1913,
+              "elo": 1914,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -2352,7 +2352,7 @@
           "opponents": [
             {
               "name": "Norway",
-              "elo": 1952,
+              "elo": 1951,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -2390,7 +2390,7 @@
               {
                 "round": "R16",
                 "opponent": "Mexico",
-                "elo": 1913,
+                "elo": 1914,
                 "condProb": 1.0,
                 "reachProb": 1.0,
                 "beatProb": 1.0,
@@ -2398,7 +2398,7 @@
                   {
                     "round": "QF",
                     "opponent": "Norway",
-                    "elo": 1952,
+                    "elo": 1951,
                     "condProb": 1.0,
                     "reachProb": 1.0,
                     "beatProb": 1.0,
@@ -2598,7 +2598,7 @@
       }
     },
     "Germany": {
-      "elo": 1908,
+      "elo": 1907,
       "win_group": 1.0,
       "runner_up": 0.0,
       "advance": 1.0,
@@ -2938,7 +2938,7 @@
       }
     },
     "Iraq": {
-      "elo": 1560,
+      "elo": 1561,
       "win_group": 0.0,
       "runner_up": 0.0,
       "advance": 0.0,
@@ -3067,7 +3067,7 @@
           "opponents": [
             {
               "name": "Norway",
-              "elo": 1952,
+              "elo": 1951,
               "faceProb": 1.0,
               "beatProb": 0.0
             }
@@ -3098,7 +3098,7 @@
           {
             "round": "R32",
             "opponent": "Norway",
-            "elo": 1952,
+            "elo": 1951,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 0.0,
@@ -3278,7 +3278,7 @@
       }
     },
     "Mexico": {
-      "elo": 1913,
+      "elo": 1914,
       "win_group": 1.0,
       "runner_up": 0.0,
       "advance": 1.0,
@@ -3714,7 +3714,7 @@
       }
     },
     "Norway": {
-      "elo": 1952,
+      "elo": 1951,
       "win_group": 0.0,
       "runner_up": 1.0,
       "advance": 1.0,
@@ -3995,7 +3995,7 @@
           "opponents": [
             {
               "name": "Germany",
-              "elo": 1908,
+              "elo": 1907,
               "faceProb": 1.0,
               "beatProb": 1.0
             }
@@ -4033,7 +4033,7 @@
           {
             "round": "R32",
             "opponent": "Germany",
-            "elo": 1908,
+            "elo": 1907,
             "condProb": 1.0,
             "reachProb": 1.0,
             "beatProb": 1.0,
@@ -4320,7 +4320,7 @@
       }
     },
     "Scotland": {
-      "elo": 1745,
+      "elo": 1746,
       "win_group": 0.0,
       "runner_up": 0.0,
       "advance": 0.0,
